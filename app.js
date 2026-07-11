@@ -128,11 +128,11 @@ app.get('/statistics', (req, res) => {
     }
 });
 app.get('/goodbye', (req, res) => {
-    if (!authenticated) {
-        res.sendFile(path.join(__dirname, 'views', 'login.html'));
-    } else {
+   
+      
+  
         res.sendFile(path.join(__dirname, 'views', 'goodbye.html'));
-    }
+    
 });
 
 app.get("/quit", (req, res) => {

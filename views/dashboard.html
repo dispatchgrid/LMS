@@ -13,20 +13,20 @@
 
 
 <body class="bg-dark text-light">
-    <div class="floating-shapes" id="shapes"></div>
-
-
     <!-- Navbar -->
-    <nav class="navbar navbar-dark bg-secondary">
+    <nav class="navbar navbar-dark bg-secondary" id="navbar">
         <div class="container-fluid">
-            <span class="navbar-brand mb-0 h1">Library Management Dashboard</span>
+            <span class="navbar-brand mb-0 h1" id="navbarTxt">Error</span>
             <div>
-            <button class="btn btn-danger" id="quitBtn">Logout & Quit</button>
-            <button class="btn btn-danger" id="logoutBtn">Logout</button>
+   
+                <button class="btn btn-danger" id="logoutBtn">Logout</button>
             </div>
 
         </div>
     </nav>
+
+
+    
 
     <!-- Dashboard Content -->
     <div class="container my-5">
@@ -112,6 +112,17 @@
                 </div>
             </div>
 
+
+            <div class="col-md-3">
+                <div class="card bg-secondary text-light h-100">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">Data entry</h5>
+                        <p class="card-text">Enter data using custom page</p>
+                        <a href="/dataentry" class="btn btn-dark w-100">Go</a>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
     <div class="footer">
@@ -120,9 +131,6 @@
     </div>
 </body>
 <script>
-    document.getElementById("quitBtn").addEventListener("click", () => {
-        window.location.href="/goodbye";
-    });
     document.getElementById("logoutBtn").addEventListener("click", () => {
         window.location.href="/deauthenticate";
     });
