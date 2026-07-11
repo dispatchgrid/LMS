@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Books Management</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+ <script src="/script.js" defer></script>
+</head>
+
+<body class="bg-dark text-light">
+    <div class="floating-shapes" id="shapes"></div>
+
+
+  <div class="container-fluid my-4">
+    <div class="row">
+
+      <!-- Left Side: Form -->
+      <div class="col-md-4">
+        <div class="card bg-secondary text-light p-3">
+          <h4 class="mb-3">Add / Edit Book</h4>
+          <form id="bookForm">
+            <div class="mb-3">
+              <label for="book_no" class="form-label">Book Number</label>
+              <input type="number" id="book_no" class="form-control" required>
+            </div>
+            <div class="mb-3">
+              <label for="title" class="form-label">Title</label>
+              <input type="text" id="title" class="form-control" required>
+            </div>
+            <div class="mb-3">
+              <label for="author" class="form-label">Author</label>
+              <input type="text" id="author" class="form-control" required>
+            </div>
+            <div class="mb-3">
+              <label for="category_id" class="form-label">Category</label>
+              <select id="category_id" class="form-select" required>
+                <!-- Categories will be loaded here -->
+              </select>
+            </div>
+            <div class="mb-3">
+              <label for="availability" class="form-label">Availability (1 = Available, 0 = Unavailable)</label>
+              <input type="number" id="availability" class="form-control" min="0" max="1" required>
+            </div>
+            <button type="submit" class="btn btn-dark w-100">Save Book</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Right Side: Table -->
+      <div class="col-md-8">
+        <div class="card bg-secondary text-light p-3">
+          <h4 class="mb-3">Book Records</h4>
+          <div class="input-group mb-3">
+            <input type="text" id="searchInput" class="form-control" placeholder="Search by ID, Title, or Author">
+            <button class="btn btn-dark" onclick="searchBook()">Search</button>
+          </div>
+          <div style="max-height:400px; overflow-y:auto;">
+            <table class="table table-striped">
+              <thead>
+                <tr>
+                  <th>Book No</th>
+                  <th>Title</th>
+                  <th>Author</th>
+                  <th>Category</th>
+                  <th>Availability</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="bookTable">
+                <!-- Book rows will be inserted here -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // Load categories into dropdown
+    function loadCategories() {
+      fetch('/api/sql', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: "SELECT * FROM Categories" })
+      })
+      .then(res => res.json())
+      .then(data => {
+        const select = document.getElementById("category_id");
+        select.innerHTML = "";
+        data.forEach(c => {
+          select.innerHTML += `<option value="${c.category_id}">${c.name}</option>`;
+        });
+      });
+    }
+
+    // Load all books
+    function loadBooks() {
+      fetch('/api/sql', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: "SELECT b.book_no, b.title, b.author, c.name AS category, b.availability, b.category_id FROM Books b LEFT JOIN Categories c ON b.category_id=c.category_id" })
+      })
+      .then(res => res.json())
+      .then(data => renderTable(data));
+    }
+
+    // Save book (insert or update)
+    document.getElementById("bookForm").addEventListener("submit", function(e) {
+      e.preventDefault();
+      const book_no = document.getElementById("book_no").value;
+      const title = document.getElementById("title").value;
+      const author = document.getElementById("author").value;
+      const category_id = document.getElementById("category_id").value;
+      const availability = document.getElementById("availability").value;
+
+      const sql = `
+        INSERT INTO Books (book_no, title, author, category_id, availability)
+        VALUES (${book_no}, '${title}', '${author}', ${category_id}, ${availability})
+        ON DUPLICATE KEY UPDATE title='${title}', author='${author}', category_id=${category_id}, availability=${availability}
+      `;
+
+      fetch('/api/sql', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: sql })
+      })
+      .then(() => loadBooks());
+
+      this.reset();
+    });
+
+    // Delete book
+    function deleteBook(id) {
+      const sql = `DELETE FROM Books WHERE book_no=${id}`;
+      fetch('/api/sql', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: sql })
+      })
+      .then(() => loadBooks());
+    }
+
+    // Search book
+    function searchBook() {
+      const query = document.getElementById("searchInput").value;
+      const sql = `SELECT b.book_no, b.title, b.author, c.name AS category, b.availability, b.category_id 
+                   FROM Books b LEFT JOIN Categories c ON b.category_id=c.category_id
+                   WHERE b.book_no='${query}' OR b.title LIKE '%${query}%' OR b.author LIKE '%${query}%'`;
+
+      fetch('/api/sql', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: sql })
+      })
+      .then(res => res.json())
+      .then(data => renderTable(data));
+    }
+
+    // Render table
+    function renderTable(books) {
+      const tbody = document.getElementById("bookTable");
+      tbody.innerHTML = "";
+      books.forEach(b => {
+        tbody.innerHTML += `
+          <tr>
+            <td>${b.book_no}</td>
+            <td>${b.title || ''}</td>
+            <td>${b.author || ''}</td>
+            <td>${b.category || ''}</td>
+            <td>${b.availability == 1 ? 'Available' : 'Unavailable'}</td>
+            <td>
+              <button class="btn btn-sm btn-light" onclick="editBook('${b.book_no}')">Edit</button>
+              <button class="btn btn-sm btn-danger" onclick="deleteBook('${b.book_no}')">Delete</button>
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    // Edit book (prefill form)
+    function editBook(id) {
+      const sql = `SELECT * FROM Books WHERE book_no=${id}`;
+      fetch('/api/sql', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: sql })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.length > 0) {
+          const b = data[0];
+          document.getElementById("book_no").value = b.book_no;
+          document.getElementById("title").value = b.title;
+          document.getElementById("author").value = b.author;
+          document.getElementById("category_id").value = b.category_id;
+          document.getElementById("availability").value = b.availability;
+        }
+      });
+    }
+
+    // Initial load
+    loadCategories();
+    loadBooks();
+  </script>
+
+</body>
+</html>
