@@ -1,4 +1,4 @@
 {
-    "allow":"true",
+    "allow":"false",
     "blockedMsg":"Sorry, the admin has recoked your license to this software\nPlease contact developer to restore the access"
 }

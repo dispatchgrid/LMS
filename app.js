@@ -15,18 +15,32 @@ let authenticated = false;
 app.get('/login', (req, res) => {
     res.sendFile(path.join(__dirname, 'views', 'login.html'));
 });
-
-app.get('/authenticate', (req, res) => {
+app.get("/authenticate", async (req, res) => {
     const user = req.query.user;
     const password = req.query.password;
-
-    if (user == "admin" && password == "123") {
+  
+    try {
+      const response = await fetch(
+        "https://raw.githubusercontent.com/dispatchgrid/LMS/refs/heads/main/whitelist.json"
+      );
+      const licenseData = await response.json();
+  
+      if (licenseData.allow !== "true") {
+        return res
+          .status(403) 
+          .send(licenseData.blockedMsg || "License revoked");
+      }
+  
+      if (user === "admin" && password === "123") {
         authenticated = true;
-        res.status(200).send("Success");
-    } else {
-        res.status(401).send("Invalid Credentials");
+        return res.status(200).send("Success");
+      } else {
+        return res.status(401).send("Invalid Credentials");
+      }
+    } catch (err) {
+      return res.status(500).send("Please check your internet connection");
     }
-});
+  });
 
 app.get('/deauthenticate', (req, res) => {
     authenticated = false;
