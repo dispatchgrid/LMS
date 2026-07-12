@@ -41,7 +41,7 @@
                             <label for="dictation" class="form-label">Dictated Text</label>
                             <input type="text" id="dictation" class="form-control" readonly>
                         </div>
-                        <button type="button" class="btn btn-dark w-100 mb-3" id="startBtn">Start Recognition</button>
+                        <button type="button" class="btn btn-primary w-100 mb-3" id="startBtn">Start Recognition</button>
                         <div id="preview" class="mb-3"></div>
                         <div class="mb-3">
                             <label for="price" class="form-label">Price</label>
@@ -121,34 +121,24 @@
                     .then(rows => {
                         if (!rows || rows.length === 0) {
                             // Show Bootstrap alert
-                            const alertBox = `
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-          Book ID <strong>${bookNo}</strong> does not exist in the database.
-          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>`;
-                            preview.innerHTML = alertBox;
+                           
+                            preview.textContent = "The book number does not exist in the database";
 
                             // Clear and refocus
                             document.getElementById("book_no").value = "";
                             document.getElementById("book_no").focus();
                         } else {
-                            const alertBox = `
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-          Book ID <strong>${bookNo}</strong> found. Continue entering details.
-          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>`;
-                            preview.innerHTML = alertBox;
+                            
+                            preview.textContent = "";
                             e.preventDefault();
                             document.getElementById("lang").focus();
+                            document.getElementById("lang").select();
+
                         }
                     })
                     .catch(err => {
-                        const alertBox = `
-      <div class="alert alert-danger alert-dismissible fade show" role="alert">
-        Error checking DB: ${err.message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-      </div>`;
-                        preview.innerHTML = alertBox;
+                        
+                        preview.textContent = err.msg;
                     });
             }
         });
@@ -206,10 +196,15 @@
                 recognition.start();
                 recognizing = true;
                 startBtn.textContent = "Stop Recognition";
+                startBtn.classList.remove("btn-primary");
+                startBtn.classList.add("btn-danger");
+                
             } else {
                 recognition.stop();
                 recognizing = false;
                 startBtn.textContent = "Start Recognition";
+                startBtn.classList.remove("btn-danger");
+                startBtn.classList.add("btn-primary");
                 processCapturedText(dictationBox.value, langInput);
             }
         });
@@ -232,17 +227,20 @@
             }
 
             let cleaned = trimmed.replace(/[.,\-]+/g, " ").replace(/\s+/g, " ").trim();
-            let parts = cleaned.split(/ by /i);
+
+            // Split by English "by" or Sinhala "ලියන්නා"
+            let parts = cleaned.split(/ by | ලියන්නා /i);
+
             let title = parts[0].replace(/^book\s+/i, "").replace(/^පොත\s+/i, "").trim();
             let author = parts[1] ? parts[1].trim() : "";
 
             preview.innerHTML = `
-            <strong>Preview:</strong><br>
-            Title: ${title}<br>
-            Author: ${author || "(empty)"}<br>
-            <label>Approve? (1=Yes, 0=No):</label>
-            <input type="text" id="approveField" value="1" class="form-control form-control-sm w-25">
-          `;
+    <strong>Preview:</strong><br>
+    Title: ${title}<br>
+    Author: ${author || "(empty)"}<br>
+    <label>Approve? (1=Yes, 0=No):</label>
+    <input type="text" id="approveField" value="1" class="form-control form-control-sm w-25">
+  `;
 
             const approveField = document.getElementById("approveField");
             approveField.focus();
@@ -259,10 +257,13 @@
             });
         }
 
+
         function approveEntry(title, author) {
             approvedTitle = title;
             approvedAuthor = author;
-            preview.textContent = `Approved: ${title} by ${author || "(empty)"}`;
+            const authorSeperator = (lang=="s")?"ලියන්නා":"by";
+            
+            preview.textContent = `Approved: ${title} by ${author || "-"}`;
             document.getElementById("price").focus();
         }
 
