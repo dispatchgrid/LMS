@@ -30,7 +30,7 @@
         <div class="container-fluid">
             <span class="navbar-brand mb-0 h1" id="navbarTxt">Error</span>
             <div>
-   
+
                 <button class="btn btn-danger" id="logoutBtn">Logout</button>
             </div>
 
@@ -79,10 +79,11 @@
             const book_no = bookInput.value;
 
             const sqlInsert = `INSERT INTO Audit (book_no, check_date) VALUES (${book_no}, NOW())`;
-            const sqlSelect = `SELECT b.book_no, b.title, b.author, c.name AS category 
-                         FROM Books b 
-                         LEFT JOIN Categories c ON b.category_id=c.category_id 
-                         WHERE b.book_no=${book_no}`;
+
+            const sqlSelect = `SELECT b.book_no, b.title, b.author, b.category
+                   FROM Books b
+                   WHERE b.book_no=${book_no}`;
+
 
             // Insert audit record
             fetch('/api/sql', {

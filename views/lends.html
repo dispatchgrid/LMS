@@ -85,7 +85,7 @@
       </div>
       
 
-    <script>
+      <script>
         const bookNoInput = document.getElementById("book_no");
         const admissionInput = document.getElementById("admission_no");
         const studentNameField = document.getElementById("student_name");
@@ -96,20 +96,19 @@
         const messageDiv = document.getElementById("message");
         const actionBtn = document.getElementById("actionBtn");
         const lendCard = document.getElementById("lendCard");
-
+    
         let currentMode = null; // "borrowed" or "lend"
-
+    
         // Step 1: Enter book number
         bookNoInput.addEventListener("keypress", function (e) {
             if (e.key === "Enter") {
                 e.preventDefault();
                 const book_no = bookNoInput.value;
-                const sql = `SELECT b.title, b.author, c.name AS category, b.availability, s.name, s.class
-                     FROM Books b
-                     LEFT JOIN Categories c ON b.category_id=c.category_id
-                     LEFT JOIN Lends l ON b.book_no=${book_no} AND l.return_date IS NULL
-                     LEFT JOIN Students s ON l.admission_no=s.admission_no
-                     WHERE b.book_no=${book_no}`;
+                const sql = `SELECT b.title, b.author, b.category, b.availability, s.name, s.class
+                             FROM Books b
+                             LEFT JOIN Lends l ON b.book_no=${book_no} AND l.return_date IS NULL
+                             LEFT JOIN Students s ON l.admission_no=s.admission_no
+                             WHERE b.book_no=${book_no}`;
                 fetch('/api/sql', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -122,7 +121,7 @@
                             bookTitleField.value = book.title || "";
                             bookAuthorField.value = book.author || "";
                             bookCategoryField.value = book.category || "";
-
+    
                             if (book.availability == 0) {
                                 // Book is borrowed
                                 currentMode = "borrowed";
@@ -148,13 +147,13 @@
                     });
             }
         });
-
+    
         // Step 2: Enter student number if lending
         admissionInput.addEventListener("keypress", function (e) {
             if (e.key === "Enter" && currentMode === "lend") {
                 e.preventDefault();
                 const admission_no = admissionInput.value;
-
+    
                 // First check if student already has a borrowed book
                 const checkSql = `SELECT COUNT(*) AS active FROM Lends WHERE admission_no=${admission_no} AND return_date IS NULL`;
                 fetch('/api/sql', {
@@ -190,13 +189,13 @@
                     });
             }
         });
-
+    
         // Step 3: Action button (lend or return)
         document.getElementById("lendForm").addEventListener("submit", function (e) {
             e.preventDefault();
             const book_no = bookNoInput.value;
             const admission_no = admissionInput.value;
-
+    
             if (currentMode === "borrowed") {
                 // Return sequence
                 fetch('/api/sql', {
@@ -215,7 +214,7 @@
                         messageDiv.innerHTML = "<span class='text-success'>Book returned successfully!</span>";
                         resetForm();
                     });
-
+    
             } else if (currentMode === "lend") {
                 // Lend sequence
                 fetch('/api/sql', {
@@ -236,20 +235,21 @@
                     });
             }
         });
+    
         function resetForm() {
             bookNoInput.value = "";
             admissionInput.value = "";
             studentNameField.value = "";
             studentClassField.value = "";
-            bookTitleField.value="";
-            bookAuthorField.value="";
-            bookCategoryField.value="";
+            bookTitleField.value = "";
+            bookAuthorField.value = "";
+            bookCategoryField.value = "";
             document.body.classList.remove("borrowed-mode", "lend-mode");
             currentMode = null;
             bookNoInput.focus();
         }
-
     </script>
+    
 
 </body>
 
