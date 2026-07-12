@@ -12,6 +12,10 @@ body {
     --bs-success: #06D6A0;   /* your theme's green */
   }
   
+  .btn-primary:hover { background-color: #4A4AE8; }
+.btn-danger:hover { background-color: #B71C1C; }
+.btn-success:hover { background-color: #04B383; }
+
 
 .card {
     background-color: #ffffff !important;

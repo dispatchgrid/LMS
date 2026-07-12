@@ -16,6 +16,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     if (navbarTxt) {
-      navbarTxt.innerHTML = "Library Management System";
+      navbarTxt.innerHTML = `<a href="/dashboard" class="text-decoration-none text-light">Library Management System </a>`;
     }
   });
