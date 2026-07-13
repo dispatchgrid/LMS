@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS `audit` (
   CONSTRAINT `audit_ibfk_1` FOREIGN KEY (`book_no`) REFERENCES `books` (`book_no`)
 ) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
--- Dumping data for table librarymanagementsystem.audit: ~4 rows (approximately)
+-- Dumping data for table librarymanagementsystem.audit: ~5 rows (approximately)
 DELETE FROM `audit`;
 INSERT INTO `audit` (`id`, `book_no`, `check_date`) VALUES
 	(1, 10001, '2026-07-10 10:31:46'),
@@ -62,13 +62,13 @@ CREATE TABLE IF NOT EXISTS `books` (
 DELETE FROM `books`;
 INSERT INTO `books` (`book_no`, `title`, `author`, `price`, `category_id`, `availability`, `metadata`, `category`) VALUES
 	(10001, 'To Kill a Mockingbird III', 'Harper Lee', 12.99, 1, 1, '{"title": "", "author": "", "category": ""}', '102'),
-	(10002, 'A Brief History of Time', 'Stephen Hawking', 15.50, 3, 0, '{"title": "", "author": "", "category": ""}', '101'),
-	(10003, 'Sapiens', 'Yuval Noah Harari', 18.00, 2, 0, '{"title": "", "author": "", "category": ""}', '102'),
+	(10002, 'A Brief History of Time', 'Stephen Hawking', 15.50, 3, 1, '{"title": "", "author": "", "category": ""}', '101'),
+	(10003, 'Sapiens', 'Yuval Noah Harari', 18.00, 2, 1, '{"title": "", "author": "", "category": ""}', '102'),
 	(10004, 'The Art of War', 'Sun Tzu', 8.99, 4, 1, '{"title": "", "author": "", "category": ""}', '105'),
-	(10005, NULL, NULL, NULL, 1, 1, '{"title": "", "author": "", "category": ""}', NULL),
+	(10005, NULL, NULL, NULL, 1, 0, '{"title": "", "author": "", "category": ""}', NULL),
 	(10006, 'Cosmos', 'Carl Sagan', 14.99, 3, 1, '{"title": "", "author": "", "category": ""}', '101'),
 	(10007, 'ටෙස්ටින්', '', 100.00, NULL, 1, '{"title": "", "author": "", "category": ""}', '101'),
-	(10008, 'ටෙස්ටින් වන් ටූ ත්රී', 'ටෙස්ටින්', 1580.00, NULL, 0, 'null', '101');
+	(10008, 'ටෙස්ටින් වන් ටූ ත්රී', 'ටෙස්ටින්', 1580.00, NULL, 1, 'null', '101');
 
 -- Dumping structure for table librarymanagementsystem.categories
 DROP TABLE IF EXISTS `categories`;
@@ -103,30 +103,40 @@ CREATE TABLE IF NOT EXISTS `lends` (
   KEY `idx_lends_return` (`return_date`),
   CONSTRAINT `lends_ibfk_1` FOREIGN KEY (`book_no`) REFERENCES `books` (`book_no`),
   CONSTRAINT `lends_ibfk_2` FOREIGN KEY (`admission_no`) REFERENCES `students` (`admission_no`)
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=13 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
--- Dumping data for table librarymanagementsystem.lends: ~4 rows (approximately)
+-- Dumping data for table librarymanagementsystem.lends: ~12 rows (approximately)
 DELETE FROM `lends`;
 INSERT INTO `lends` (`id`, `book_no`, `admission_no`, `lend_date`, `return_date`) VALUES
 	(1, 10001, 2001, '2026-07-10', '2026-07-10'),
 	(2, 10001, 2001, '2026-07-10', '2026-07-11'),
 	(3, 10002, 2001, '2026-07-11', '2026-07-11'),
 	(4, 10001, 2001, '2026-07-11', '2026-07-12'),
-	(5, 10002, 2001, '2026-07-12', NULL);
+	(5, 10002, 2001, '2026-07-12', '2026-07-13'),
+	(6, 10001, 2002, '2026-07-13', '2026-07-13'),
+	(7, 10001, 2002, '2026-07-13', '2026-07-13'),
+	(8, 10001, 2001, '2026-07-13', '2026-07-13'),
+	(9, 10001, 2002, '2026-07-13', '2026-07-13'),
+	(10, 10003, 2002, '2026-07-13', '2026-07-13'),
+	(11, 10002, 2002, '2026-07-13', '2026-07-13'),
+	(12, 10005, 2002, '2026-07-13', NULL);
 
 -- Dumping structure for table librarymanagementsystem.students
 DROP TABLE IF EXISTS `students`;
 CREATE TABLE IF NOT EXISTS `students` (
   `admission_no` int NOT NULL,
-  `name` varchar(100) NOT NULL,
-  `class` varchar(50) NOT NULL,
+  `student_name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL,
+  `class_number` int DEFAULT (0),
+  `class` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL,
   PRIMARY KEY (`admission_no`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
--- Dumping data for table librarymanagementsystem.students: ~0 rows (approximately)
+-- Dumping data for table librarymanagementsystem.students: ~3 rows (approximately)
 DELETE FROM `students`;
-INSERT INTO `students` (`admission_no`, `name`, `class`) VALUES
-	(2001, 'Nethmal Sooriyabandara', '11E');
+INSERT INTO `students` (`admission_no`, `student_name`, `class_number`, `class`) VALUES
+	(2001, 'Nethmal Sooriyabandara', 9, '11E'),
+	(2002, 'Subahu Bandara', 8, '11E'),
+	(2003, 'Amarasiri', 7, '11A');
 
 /*!40103 SET TIME_ZONE=IFNULL(@OLD_TIME_ZONE, 'system') */;
 /*!40101 SET SQL_MODE=IFNULL(@OLD_SQL_MODE, '') */;

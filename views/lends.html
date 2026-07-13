@@ -18,7 +18,7 @@
 
         /* dark greenish */
     </style>
- <script src="/script.js" defer></script>
+    <script src="/script.js" defer></script>
 </head>
 
 
@@ -28,7 +28,7 @@
         <div class="container-fluid">
             <span class="navbar-brand mb-0 h1" id="navbarTxt">Error</span>
             <div>
-   
+
                 <button class="btn btn-danger" id="logoutBtn">Logout</button>
             </div>
 
@@ -37,55 +37,60 @@
 
     <div class="container my-3">
         <div class="card bg-secondary text-light p-4" id="lendCard">
-          <h3 class="mb-3">Lends Management</h3>
-          <form id="lendForm">
-            <div class="row">
-              <!-- Left side: Book details -->
-              <div class="col-md-6">
-                <div class="mb-3">
-                  <label for="book_no" class="form-label">Book Number</label>
-                  <input type="number" id="book_no" class="form-control" required autofocus>
-                </div>
-                <div class="mb-3">
-                  <label class="form-label">Book Title</label>
-                  <input type="text" id="book_title" class="form-control" readonly>
-                </div>
-                <div class="mb-3">
-                  <label class="form-label">Author</label>
-                  <input type="text" id="book_author" class="form-control" readonly>
-                </div>
-                <div class="mb-3">
-                  <label class="form-label">Category</label>
-                  <input type="text" id="book_category" class="form-control" readonly>
-                </div>
-              </div>
-      
-              <!-- Right side: Student details -->
-              <div class="col-md-6">
-                <div class="mb-3">
-                  <label for="admission_no" class="form-label">Student Admission No</label>
-                  <input type="number" id="admission_no" class="form-control">
-                </div>
-                <div class="mb-3">
-                  <label class="form-label">Student Name</label>
-                  <input type="text" id="student_name" class="form-control" readonly>
-                </div>
-                <div class="mb-3">
-                  <label class="form-label">Class</label>
-                  <input type="text" id="student_class" class="form-control" readonly>
-                </div>
-              </div>
-            </div>
-      
-            <!-- Full-width button -->
-            <button type="submit" class="btn btn-success w-100 mt-3" id="actionBtn">Lend / Return</button>
-          </form>
-          <div id="message" class="mt-3 text-center"></div>
-        </div>
-      </div>
-      
+            <h3 class="mb-3">Lends Management</h3>
+            <form id="lendForm">
+                <div class="row">
+                    <!-- Left side: Book details -->
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="book_no" class="form-label">Book Number</label>
+                            <input type="number" id="book_no" class="form-control" required autofocus>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Book Title</label>
+                            <input type="text" id="book_title" class="form-control" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Author</label>
+                            <input type="text" id="book_author" class="form-control" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Category</label>
+                            <input type="text" id="book_category" class="form-control" readonly>
+                        </div>
+                    </div>
 
-      <script>
+                    <!-- Right side: Student details -->
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="admission_no" class="form-label">Student Admission No</label>
+                            <input type="number" id="admission_no" class="form-control">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Student Name</label>
+                            <input type="text" id="student_name" class="form-control" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label for="student_class" class="form-label">Class</label>
+                            <input type="text" id="student_class" class="form-control" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label for="student_class_number" class="form-label">Class Number</label>
+                            <input type="text" id="student_class_number" class="form-control" readonly>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Full-width button -->
+                <button type="submit" class="btn btn-success w-100 mt-3" id="actionBtn">Lend / Return</button>
+            </form>
+            <div id="message" class="mt-3 text-center"></div>
+        </div>
+    </div>
+
+
+    <script>
         const bookNoInput = document.getElementById("book_no");
         const admissionInput = document.getElementById("admission_no");
         const studentNameField = document.getElementById("student_name");
@@ -93,18 +98,27 @@
         const bookTitleField = document.getElementById("book_title");
         const bookAuthorField = document.getElementById("book_author");
         const bookCategoryField = document.getElementById("book_category");
+        const studentClassNumberField = document.getElementById("student_class_number");
+
         const messageDiv = document.getElementById("message");
         const actionBtn = document.getElementById("actionBtn");
         const lendCard = document.getElementById("lendCard");
-    
+
         let currentMode = null; // "borrowed" or "lend"
-    
+
+        document.body.addEventListener("keydown", function (e) {
+            if (e.key === "Escape") {
+                resetForm();
+            }
+
+        });
+
         // Step 1: Enter book number
         bookNoInput.addEventListener("keypress", function (e) {
             if (e.key === "Enter") {
                 e.preventDefault();
                 const book_no = bookNoInput.value;
-                const sql = `SELECT b.title, b.author, b.category, b.availability, s.name, s.class
+                const sql = `SELECT b.title, b.author, b.category, b.availability, s.student_name, s.class, s.class_number
                              FROM Books b
                              LEFT JOIN Lends l ON b.book_no=${book_no} AND l.return_date IS NULL
                              LEFT JOIN Students s ON l.admission_no=s.admission_no
@@ -121,7 +135,7 @@
                             bookTitleField.value = book.title || "";
                             bookAuthorField.value = book.author || "";
                             bookCategoryField.value = book.category || "";
-    
+
                             if (book.availability == 0) {
                                 // Book is borrowed
                                 currentMode = "borrowed";
@@ -129,7 +143,7 @@
                                 document.body.classList.remove("lend-mode");
                                 studentNameField.value = book.name || "";
                                 studentClassField.value = book.class || "";
-                                messageDiv.innerHTML = `<span class="text-danger">Borrowed by ${book.name} (${book.class}). Press Enter to return.</span>`;
+                                messageDiv.innerHTML = `<span class="text-danger">Borrowed by ${book.student_name} (${book.class}-${book.class_number}). Press Enter to return.</span>`;
                                 actionBtn.focus();
                             } else {
                                 // Book is available
@@ -147,55 +161,128 @@
                     });
             }
         });
-    
+
         // Step 2: Enter student number if lending
         admissionInput.addEventListener("keypress", function (e) {
             if (e.key === "Enter" && currentMode === "lend") {
                 e.preventDefault();
-                const admission_no = admissionInput.value;
-    
-                // First check if student already has a borrowed book
-                const checkSql = `SELECT COUNT(*) AS active FROM Lends WHERE admission_no=${admission_no} AND return_date IS NULL`;
+                const admission_no = admissionInput.value.trim();
+
+                if (admission_no) {
+                    // Admission number provided → load student directly
+                    const checkSql = `SELECT COUNT(*) AS active FROM Lends WHERE admission_no=${admission_no} AND return_date IS NULL`;
+                    fetch('/api/sql', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ query: checkSql })
+                    })
+                        .then(res => res.json())
+                        .then(result => {
+                            if (result[0].active > 0) {
+                                // Student already has a borrowed book → fetch that book's details
+                                const borrowedSql = `
+        SELECT b.title, b.author, b.category, b.book_no
+        FROM Lends l
+        JOIN Books b ON l.book_no = b.book_no
+        WHERE l.admission_no=${admission_no} AND l.return_date IS NULL
+    `;
+                                fetch('/api/sql', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ query: borrowedSql })
+                                })
+                                    .then(res => res.json())
+                                    .then(borrowedData => {
+                                        if (borrowedData.length > 0) {
+                                            console.log(borrowedData);
+                                            const borrowedBook = borrowedData[0];
+                                            bookNoInput.value = borrowedBook.book_no;
+                                            bookTitleField.value = borrowedBook.title;
+                                            bookAuthorField.value = borrowedBook.author;
+                                            bookCategoryField.value = borrowedBook.category;
+
+                                            messageDiv.innerHTML = `<span class='text-danger'>
+                This student already borrowed "${borrowedBook.title || "a book (name not found)"}". 
+                They must return it before borrowing another.
+            </span>`;
+                                        }
+                                    });
+                            }
+                            else {
+                                const sql = `SELECT * FROM Students WHERE admission_no=${admission_no}`;
+                                fetch('/api/sql', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ query: sql })
+                                })
+                                    .then(res => res.json())
+                                    .then(data => {
+                                        if (data.length > 0) {
+                                            const student = data[0];
+                                            studentNameField.value = student.student_name;
+                                            studentClassField.value = student.class;
+                                            studentClassNumberField.value = student.class_number;
+                                            messageDiv.innerHTML = `<span class="text-info">Student: ${student.student_name} (${student.class}-${student.class_number}). Press Enter to lend.</span>`;
+                                            actionBtn.focus();
+                                        } else {
+                                            messageDiv.innerHTML = "<span class='text-warning'>Student not found.</span>";
+                                        }
+                                    });
+                            }
+                        });
+                } else {
+                    // Admission number empty → move focus to class field
+                    studentClassNumberField.removeAttribute("readonly");
+                    studentClassField.removeAttribute("readonly");
+                    studentClassField.focus();
+                    messageDiv.innerHTML = "<span class='text-info'>Enter class and class number to search student.</span>";
+                }
+            }
+        });
+        studentClassNumberField.addEventListener("keypress", function (e) {
+            if (e.key === "Enter" && currentMode === "lend") {
+                e.preventDefault();
+                const className = studentClassField.value.trim();
+                const classNumber = studentClassNumberField.value.trim();
+
+                const sql = `SELECT * FROM Students WHERE class='${className}' AND class_number=${classNumber}`;
                 fetch('/api/sql', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ query: checkSql })
+                    body: JSON.stringify({ query: sql })
                 })
                     .then(res => res.json())
-                    .then(result => {
-                        if (result[0].active > 0) {
-                            messageDiv.innerHTML = "<span class='text-danger'>This student already has a borrowed book!</span>";
+                    .then(data => {
+                        if (data.length > 0) {
+                            const student = data[0];
+                            admissionInput.value = student.admission_no; // auto-fill admission number
+                            studentNameField.value = student.student_name;
+                            studentClassField.value = student.class;
+                            studentClassNumberField.value = student.class_number;
+                            messageDiv.innerHTML = `<span class="text-info">Student: ${student.student_name} (${student.class}-${student.class_number}). Press Enter to lend.</span>`;
+                            admissionInput.focus();
                         } else {
-                            // Load student info
-                            const sql = `SELECT * FROM Students WHERE admission_no=${admission_no}`;
-                            fetch('/api/sql', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ query: sql })
-                            })
-                                .then(res => res.json())
-                                .then(data => {
-                                    if (data.length > 0) {
-                                        const student = data[0];
-                                        studentNameField.value = student.name;
-                                        studentClassField.value = student.class;
-                                        messageDiv.innerHTML = `<span class="text-info">Student: ${student.name} (${student.class}). Press Enter to lend.</span>`;
-                                        actionBtn.focus();
-                                    } else {
-                                        messageDiv.innerHTML = "<span class='text-warning'>Student not found.</span>";
-                                    }
-                                });
+                            messageDiv.innerHTML = "<span class='text-warning'>Student not found by class/number.</span>";
                         }
                     });
             }
         });
-    
+
+
+        studentClassField.addEventListener("keypress", function (e) {
+            if (e.key === "Enter" && currentMode === "lend") {
+                e.preventDefault();
+                // Just move focus to class_number, do NOT lend yet
+                studentClassNumberField.focus();
+            }
+        });
+
         // Step 3: Action button (lend or return)
         document.getElementById("lendForm").addEventListener("submit", function (e) {
             e.preventDefault();
             const book_no = bookNoInput.value;
             const admission_no = admissionInput.value;
-    
+
             if (currentMode === "borrowed") {
                 // Return sequence
                 fetch('/api/sql', {
@@ -214,7 +301,7 @@
                         messageDiv.innerHTML = "<span class='text-success'>Book returned successfully!</span>";
                         resetForm();
                     });
-    
+
             } else if (currentMode === "lend") {
                 // Lend sequence
                 fetch('/api/sql', {
@@ -235,7 +322,7 @@
                     });
             }
         });
-    
+
         function resetForm() {
             bookNoInput.value = "";
             admissionInput.value = "";
@@ -244,12 +331,14 @@
             bookTitleField.value = "";
             bookAuthorField.value = "";
             bookCategoryField.value = "";
+            messageDiv.innerHTML = "";
+            studentClassNumberField.value = "";
             document.body.classList.remove("borrowed-mode", "lend-mode");
             currentMode = null;
             bookNoInput.focus();
         }
     </script>
-    
+
 
 </body>
 

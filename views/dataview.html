@@ -20,7 +20,7 @@
         </div>
     </nav>
 
-    <div class="container my-5">
+    <div class="container my-4">
         <div class="card bg-secondary text-light p-4">
             <h3 class="mb-3">Library Data View & Statistics</h3>
 
@@ -47,6 +47,7 @@
             <div class="row mb-3" id="statsRow"></div>
 
             <!-- Data Table -->
+            <div style="max-height:400px; overflow-y:auto;">
             <table class="table table-striped" id="dataTable">
                 <thead>
                     <tr>
@@ -57,13 +58,15 @@
                         <th onclick="sortTable(4)">Availability ⬍</th>
                         <th onclick="sortTable(5)">Borrower Name ⬍</th>
                         <th onclick="sortTable(6)">Class ⬍</th>
-                        <th onclick="sortTable(7)">Lend Date ⬍</th>
-                        <th onclick="sortTable(8)">Borrow Status ⬍</th>
-                        <th onclick="sortTable(9)">Due Status ⬍</th>
+                        <th onclick="sortTable(7)">Class Number ⬍</th>
+                        <th onclick="sortTable(8)">Lend Date ⬍</th>
+                        <th onclick="sortTable(9)">Borrow Status ⬍</th>
+                        <th onclick="sortTable(10)">Due Status ⬍</th>
                     </tr>
                 </thead>
                 <tbody id="dataBody"></tbody>
             </table>
+            </div>
         </div>
     </div>
 
@@ -74,35 +77,36 @@
 
             // SQL query: join Books + Lends + Students
             let sql = `
-        SELECT 
-          b.book_no,
-          b.title,
-          b.author,
-          b.category,
-          b.availability,
-          s.name,
-          s.class,
-          l.lend_date,
-          CASE 
-            WHEN b.availability = 1 THEN 'Available'
-            WHEN l.return_date IS NULL THEN 'Borrowed'
-            ELSE 'Returned'
-          END AS borrow_status,
-          CASE 
-            WHEN b.availability = 1 THEN '-' 
-            WHEN l.return_date IS NULL AND DATEDIFF(CURDATE(), l.lend_date) > 7 THEN 'Overdue'
-            WHEN l.return_date IS NULL THEN 'Within Due'
-            ELSE '-'
-          END AS due_status
-        FROM Books b
-        LEFT JOIN Lends l 
-          ON b.book_no = l.book_no 
-          AND l.lend_date = (
-            SELECT MAX(l2.lend_date) 
-            FROM Lends l2 
-            WHERE l2.book_no = b.book_no
-          )
-        LEFT JOIN Students s ON l.admission_no = s.admission_no
+            SELECT 
+  b.book_no,
+  b.title,
+  b.author,
+  b.category,
+  b.availability,
+  s.student_name,
+  s.class,
+  s.class_number,
+  l.lend_date,
+  CASE 
+    WHEN b.availability = 1 THEN 'Available'
+    WHEN l.return_date IS NULL THEN 'Borrowed'
+    ELSE 'Returned'
+  END AS borrow_status,
+  CASE 
+    WHEN b.availability = 1 THEN '-' 
+    WHEN l.return_date IS NULL AND DATEDIFF(CURDATE(), l.lend_date) > 7 THEN 'Overdue'
+    WHEN l.return_date IS NULL THEN 'Within Due'
+    ELSE '-'
+  END AS due_status
+FROM Books b
+LEFT JOIN Lends l 
+  ON b.book_no = l.book_no 
+  AND l.lend_date = (
+    SELECT MAX(l2.lend_date) 
+    FROM Lends l2 
+    WHERE l2.book_no = b.book_no
+  )
+LEFT JOIN Students s ON l.admission_no = s.admission_no
       `;
 
             const conditions = [];
@@ -116,8 +120,25 @@
             }
 
             if (search) {
-                conditions.push(`(b.book_no LIKE '%${search}%' OR b.title LIKE '%${search}%' OR b.author LIKE '%${search}%' OR b.category LIKE '%${search}%' OR s.name LIKE '%${search}%')`);
+                // Normalize: remove spaces and dashes
+                const normalized = search.replace(/[-\s]+/g, "");
+                const match = normalized.match(/^([A-Za-z0-9]+)(\d+)$/);
+
+                if (match) {
+                    const className = match[1];
+                    const classNumber = match[2];
+                    conditions.push(`(s.class='${className}' AND s.class_number=${classNumber})`);
+                } else {
+                    conditions.push(`(
+      b.book_no LIKE '%${search}%' OR 
+      b.title LIKE '%${search}%' OR 
+      b.author LIKE '%${search}%' OR 
+      b.category LIKE '%${search}%' OR 
+      s.student_name LIKE '%${search}%'
+    )`);
+                }
             }
+
 
             if (conditions.length > 0) {
                 sql += " WHERE " + conditions.join(" AND ");
@@ -138,6 +159,7 @@
         function renderTable(data) {
             const tbody = document.getElementById("dataBody");
             tbody.innerHTML = "";
+            console.log(data);
             data.forEach(row => {
                 tbody.innerHTML += `
       <tr>
@@ -146,8 +168,9 @@
         <td>${row.author || "-"}</td>
         <td>${row.category || "-"}</td>
         <td>${row.availability == 1 ? "Available" : "Unavailable"}</td>
-        <td>${row.availability == 1 ? "-" : (row.name || "-")}</td>
+        <td>${row.availability == 1 ? "-" : (row.student_name || "-")}</td>
         <td>${row.availability == 1 ? "-" : (row.class || "-")}</td>
+        <td>${row.availability == 1 ? "-" : (row.class_number || "-")}</td>
         <td>${row.availability == 1 ? "-" : (formatDate(row.lend_date))}</td>
         <td>${row.borrow_status}</td>
         <td>${row.due_status}</td>
@@ -155,6 +178,7 @@
     `;
             });
         }
+
 
         function renderStats(data) {
             const totalBooks = data.length;
@@ -213,4 +237,5 @@
         }
     </script>
 </body>
+
 </html>

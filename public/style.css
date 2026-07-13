@@ -1,7 +1,7 @@
 body {
     background-color: #f0f0f0 !important;
     /* light grey background */
-    color: #000 !important;
+    color:#ffffff !important;
     /* black text */
     font-family: Arial, sans-serif !important;
 }
@@ -20,14 +20,14 @@ body {
 .card {
     background-color: #ffffff !important;
     /* white cards */
-    color: #000 !important;
+  
     /* black text */
 }
 
 .table tr {
     background-color: #2A2A4A  !important;
     /* white table */
-    color: #000 !important;
+ 
     /* black text */
 }
 
@@ -41,9 +41,10 @@ td {
 #tbody {
     background-color: #12122B  !important;
     /* white table */
-    color: #000 !important;
+ 
     /* black text */
 }
+
 
 .table thead {
     background-color: #202060  !important;
@@ -138,4 +139,8 @@ svg {
     text-align: center;
     padding: 10px;
     z-index: 100; /* above shapes */
+  }
+
+  table tr:nth-child(n+11) {
+    display: none;
   }

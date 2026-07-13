@@ -23,7 +23,7 @@
     </nav>
 
 
-  <div class="container my-5">
+  <div class="container my-4">
     <div class="card bg-secondary text-light p-4">
       <h3 class="mb-3">Library Statistics</h3>
 
@@ -41,20 +41,21 @@
       </div>
 
       <!-- Statistics Display -->
-      <div id="stats" class="mt-4"></div>
+      <div id="stats" class="mt-4 text-light"></div>
 
       <!-- Charts -->
       <div class="mt-4">
         <h5>Borrowing Frequency</h5>
-        <canvas id="frequencyChart"></canvas>
+        <canvas id="frequencyChart" style="height:30vh; max-height:40vh; width:100%;"></canvas>
+
       </div>
       <div class="mt-4">
         <h5>Top 10 Borrowed Books</h5>
-        <canvas id="booksChart"></canvas>
+        <canvas id="booksChart" style="height:30vh; max-height:40vh; width:100%;"></canvas>
       </div>
       <div class="mt-4">
         <h5>Top 10 Borrowing Students</h5>
-        <canvas id="studentsChart"></canvas>
+        <canvas id="studentsChart" style="height:30vh; max-height:40vh; width:100%;"></canvas>
       </div>
     </div>
   </div>
@@ -107,7 +108,7 @@
         const borrowedPct = ((stats.borrowedOnce.borrowedOnce / stats.totalBooks.total) * 100).toFixed(2);
 
         document.getElementById("stats").innerHTML = `
-          <div class="card bg-dark p-3">
+          <div class="card bg-dark text-light p-3">
             <p><strong>Available Books:</strong> ${stats.availableBooks.available}</p>
             <p><strong>Not Returned:</strong> ${stats.notReturned.notReturned}</p>
             <p><strong>Overdue:</strong> ${stats.overdue.overdue}</p>
@@ -170,7 +171,7 @@
       });
 
       // Top 10 students
-      const studentsSql = `SELECT s.name, COUNT(*) AS cnt 
+      const studentsSql = `SELECT s.student_name, COUNT(*) AS cnt 
                            FROM Lends l JOIN Students s ON l.admission_no=s.admission_no 
                            WHERE l.lend_date BETWEEN '${fromDate}' AND '${toDate}' 
                            GROUP BY s.admission_no ORDER BY cnt DESC LIMIT 10`;
@@ -182,7 +183,7 @@
       })
       .then(res => res.json())
       .then(data => {
-        const labels = data.map(d => d.name);
+        const labels = data.map(d => d.student_name);
         const counts = data.map(d => d.cnt);
         if (studentsChart) studentsChart.destroy();
         studentsChart = new Chart(document.getElementById("studentsChart"), {

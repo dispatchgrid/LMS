@@ -4,6 +4,8 @@ const db = require('./config/db');
 const app = express();
 const { exec } = require('child_process');
 
+const dev = true;
+
 require('dotenv').config();
 
 app.use(express.json());
@@ -24,7 +26,7 @@ app.get('/login', (req, res) => {
 app.get("/authenticate", async (req, res) => {
     const user = req.query.user;
     const password = req.query.password;
-  
+    
     try {
       const response = await fetch(
         "https://raw.githubusercontent.com/dispatchgrid/LMS/refs/heads/main/whitelist.json"
@@ -164,7 +166,7 @@ app.post('/api/sql', (req, res) => {
 app.listen(port, () => {
     
     console.log('Boot sequence initiated...\n');
-
+    if(!dev){
     // Generators for fake logs
     const generators = {
       copyFile: () => `Copying file: C:\\System32\\drivers\\net_${Math.floor(Math.random()*99999)}.dll`,
@@ -228,4 +230,8 @@ app.listen(port, () => {
         }
       }, 20);
     }
+}else{
+    exec(`start http://localhost:${port}`);
+
+}
 });
