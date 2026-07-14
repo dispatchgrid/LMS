@@ -141,6 +141,6 @@ svg {
     z-index: 100; /* above shapes */
   }
 
-  table tr:nth-child(n+11) {
+  /*table tr:nth-child(n+11) {
     display: none;
-  }
+  }*/

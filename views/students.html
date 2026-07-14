@@ -62,20 +62,23 @@
                         <input type="text" id="searchInput" class="form-control" placeholder="Search by ID or Name">
                         <button class="btn btn-primary" onclick="searchStudent()">Search</button>
                     </div>
-                    <table class="table table-striped">
-                        <thead>
-                            <tr>
-                                <th>Admission No</th>
-                                <th>Class</th>
-                                <th>Class Number</th>
-                                <th>Name</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="studentTable">
-                            <!-- Student rows will be inserted here -->
-                        </tbody>
-                    </table>
+                    <div style="max-height:60vh; overflow-y:auto;">
+
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Admission No</th>
+                                    <th>Class</th>
+                                    <th>Class Number</th>
+                                    <th>Name</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="studentTable">
+                                <!-- Student rows will be inserted here -->
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
 
@@ -93,7 +96,19 @@
                 .then(res => res.json())
                 .then(data => renderTable(data));
         }
+        document.querySelectorAll('#studentForm input').forEach((input, index, inputs) => {
+            input.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault(); // Prevent form submission
 
+                    if (index < inputs.length - 1) {
+                        inputs[index + 1].focus();
+                    } else {
+                        document.getElementById('studentForm').requestSubmit();
+                    }
+                }
+            });
+        });
         // Save student (insert or update)
         document.getElementById("studentForm").addEventListener("submit", function (e) {
             e.preventDefault();
@@ -116,6 +131,7 @@
                 .then(() => loadStudents());
 
             this.reset();
+            admission_no.focus();
         });
 
         // Delete student

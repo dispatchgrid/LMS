@@ -149,7 +149,8 @@ app.get("/quit", (req, res) => {
 
 // Exposed raw SQL endpoint
 app.post('/api/sql', (req, res) => {
-    const { query } = req.body;
+    let { query } = req.body;
+
     if (authenticated) {
         db.query(query, (err, results) => {
             if (err) {
@@ -231,7 +232,7 @@ app.listen(port, () => {
       }, 20);
     }
 }else{
-    exec(`start http://localhost:${port}`);
+    //exec(`start http://localhost:${port}`);
 
 }
 });

@@ -24,8 +24,8 @@
         <div class="row">
 
             <!-- Left Side: Book Details -->
-            <div class="col-md-6">
-                <div class="card bg-secondary text-light p-3">
+            <div class="col-md-4" style="min-height: 50%;">
+                <div class="card bg-secondary text-light p-3" >
                     <h4 class="mb-3">Add / Edit Book</h4>
                     <form id="bookForm">
                         <div class="mb-3">
@@ -34,20 +34,20 @@
                         </div>
                         <div class="mb-3">
                             <label for="title" class="form-label">Title</label>
-                            <input type="text" id="title" class="form-control" required>
+                            <input type="text" id="title" class="form-control">
                         </div>
                         <div class="mb-3">
                             <label for="author" class="form-label">Author</label>
-                            <input type="text" id="author" class="form-control" required>
+                            <input type="text" id="author" class="form-control">
                         </div>
                         <div class="mb-3">
                             <label for="category" class="form-label">Category</label>
-                            <input type="text" id="category" class="form-control" required>
+                            <input type="text" id="category" class="form-control">
                         </div>
                         <div class="mb-3">
                             <label for="availability" class="form-label">Availability (1 = Available, 0 =
                                 Unavailable)</label>
-                            <input type="number" id="availability" class="form-control" min="0" max="1" required>
+                            <input type="number" id="availability" class="form-control" min="0" max="1" value="1">
                         </div>
                         <button type="submit" class="btn btn-success w-100">Save Book</button>
                     </form>
@@ -55,14 +55,14 @@
             </div>
 
             <!-- Right Side: Student Details -->
-            <div class="col-md-6">
+            <div class="col-md-8" >
                 <div class="card bg-secondary text-light p-3">
-                    <h4 class="mb-3">Student Records</h4>
+                    <h4 class="mb-3">Book Records</h4>
                     <div class="input-group mb-3">
-                        <input type="text" id="searchStudent" class="form-control" placeholder="Search by ID or Name">
-                        <button class="btn btn-primary" onclick="searchStudent()">Search</button>
+                        <input type="text" id="searchInput" class="form-control" placeholder="Search by ID or Name">
+                        <button class="btn btn-primary" onclick="searchBook()">Search</button>
                     </div>
-                    <div style="max-height:400px; overflow-y:auto;">
+                    <div style="max-height:60vh; overflow-y:auto;">
                         <table class="table table-striped">
                             <thead>
                                 <tr>
@@ -85,7 +85,6 @@
         </div>
     </div>
     <script>
-        // Load all books
         function loadBooks() {
             fetch('/api/sql', {
                 method: 'POST',
@@ -95,8 +94,19 @@
                 .then(res => res.json())
                 .then(data => renderTable(data));
         }
+        document.querySelectorAll('#bookForm input').forEach((input, index, inputs) => {
+            input.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault(); // Prevent form submission
 
-        // Save book (insert or update)
+                    if (index < inputs.length - 1) {
+                        inputs[index + 1].focus();
+                    } else {
+                        document.getElementById('bookForm').requestSubmit();
+                    }
+                }
+            });
+        });
         document.getElementById("bookForm").addEventListener("submit", function (e) {
             e.preventDefault();
             const book_no = document.getElementById("book_no").value;
@@ -104,13 +114,13 @@
             const author = document.getElementById("author").value;
             const category = document.getElementById("category").value;
             const availability = document.getElementById("availability").value;
-
+        
             const sql = `
-        INSERT INTO Books (book_no, title, author, category, availability)
-        VALUES (${book_no}, '${title}', '${author}', '${category}', ${availability})
-        ON DUPLICATE KEY UPDATE title='${title}', author='${author}', category='${category}', availability=${availability}
-      `;
-
+            INSERT INTO Books (book_no, title, author, category, availability)
+            VALUES (${book_no}, '${title}', '${author}', '${category}', ${availability})
+            ON DUPLICATE KEY UPDATE title='${title}', author='${author}', category='${category}', availability=${availability}
+            `;
+            console.log(sql);
             fetch('/api/sql', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -135,7 +145,7 @@
         // Search book
         function searchBook() {
             const query = document.getElementById("searchInput").value;
-            const sql = `SELECT book_no, title, author, category, availability 
+            const sql = `SELECT book_no, title, author, category, availability
                    FROM Books
                    WHERE book_no='${query}' OR title LIKE '%${query}%' OR author LIKE '%${query}%' OR category LIKE '%${query}%'`;
 

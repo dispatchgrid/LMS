@@ -108,7 +108,7 @@
         const borrowedPct = ((stats.borrowedOnce.borrowedOnce / stats.totalBooks.total) * 100).toFixed(2);
 
         document.getElementById("stats").innerHTML = `
-          <div class="card bg-dark text-light p-3">
+          <div class="card bg-secondary text-light p-3">
             <p><strong>Available Books:</strong> ${stats.availableBooks.available}</p>
             <p><strong>Not Returned:</strong> ${stats.notReturned.notReturned}</p>
             <p><strong>Overdue:</strong> ${stats.overdue.overdue}</p>
