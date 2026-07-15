@@ -85,20 +85,26 @@
         </div>
     </div>
     <script>
+        const QUERY_LIMIT = 20; // Change this value to adjust row limit
+    
         function loadBooks() {
+            const sql = `SELECT book_no, title, author, category, availability 
+                         FROM Books 
+                         LIMIT ${QUERY_LIMIT}`;
             fetch('/api/sql', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ query: "SELECT book_no, title, author, category, availability FROM Books" })
+                body: JSON.stringify({ query: sql })
             })
-                .then(res => res.json())
-                .then(data => renderTable(data));
+            .then(res => res.json())
+            .then(data => renderTable(data));
         }
+    
         document.querySelectorAll('#bookForm input').forEach((input, index, inputs) => {
             input.addEventListener('keydown', function (e) {
                 if (e.key === 'Enter') {
                     e.preventDefault(); // Prevent form submission
-
+    
                     if (index < inputs.length - 1) {
                         inputs[index + 1].focus();
                     } else {
@@ -107,6 +113,7 @@
                 }
             });
         });
+    
         document.getElementById("bookForm").addEventListener("submit", function (e) {
             e.preventDefault();
             const book_no = document.getElementById("book_no").value;
@@ -126,11 +133,11 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ query: sql })
             })
-                .then(() => loadBooks());
-
+            .then(() => loadBooks());
+    
             this.reset();
         });
-
+    
         // Delete book
         function deleteBook(id) {
             const sql = `DELETE FROM Books WHERE book_no=${id}`;
@@ -139,71 +146,75 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ query: sql })
             })
-                .then(() => loadBooks());
+            .then(() => loadBooks());
         }
-
-        // Search book
+    
+        // Search book (also limited)
         function searchBook() {
             const query = document.getElementById("searchInput").value;
             const sql = `SELECT book_no, title, author, category, availability
-                   FROM Books
-                   WHERE book_no='${query}' OR title LIKE '%${query}%' OR author LIKE '%${query}%' OR category LIKE '%${query}%'`;
-
+                         FROM Books
+                         WHERE book_no='${query}' 
+                            OR title LIKE '%${query}%' 
+                            OR author LIKE '%${query}%' 
+                            OR category LIKE '%${query}%'
+                         LIMIT ${QUERY_LIMIT}`;
+    
             fetch('/api/sql', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ query: sql })
             })
-                .then(res => res.json())
-                .then(data => renderTable(data));
+            .then(res => res.json())
+            .then(data => renderTable(data));
         }
-
+    
         // Render table
         function renderTable(books) {
             const tbody = document.getElementById("bookTable");
             tbody.innerHTML = "";
             books.forEach(b => {
                 tbody.innerHTML += `
-          <tr>
-            <td>${b.book_no}</td>
-            <td>${b.title || ''}</td>
-            <td>${b.author || ''}</td>
-            <td>${b.category || ''}</td>
-            <td>${b.availability == 1 ? 'Available' : 'Unavailable'}</td>
-            <td>
-              <button class="btn btn-sm btn-light" onclick="editBook('${b.book_no}')">Edit</button>
-              <button class="btn btn-sm btn-danger" onclick="deleteBook('${b.book_no}')">Delete</button>
-            </td>
-          </tr>
-        `;
+                    <tr>
+                        <td>${b.book_no}</td>
+                        <td>${b.title || ''}</td>
+                        <td>${b.author || ''}</td>
+                        <td>${b.category || ''}</td>
+                        <td>${b.availability == 1 ? 'Available' : 'Unavailable'}</td>
+                        <td>
+                            <button class="btn btn-sm btn-light" onclick="editBook('${b.book_no}')">Edit</button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteBook('${b.book_no}')">Delete</button>
+                        </td>
+                    </tr>
+                `;
             });
         }
-
+    
         // Edit book (prefill form)
         function editBook(id) {
-            const sql = `SELECT * FROM Books WHERE book_no=${id}`;
+            const sql = `SELECT * FROM Books WHERE book_no=${id} LIMIT 1`;
             fetch('/api/sql', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ query: sql })
             })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.length > 0) {
-                        const b = data[0];
-                        document.getElementById("book_no").value = b.book_no;
-                        document.getElementById("title").value = b.title;
-                        document.getElementById("author").value = b.author;
-                        document.getElementById("category").value = b.category;
-                        document.getElementById("availability").value = b.availability;
-                    }
-                });
+            .then(res => res.json())
+            .then(data => {
+                if (data.length > 0) {
+                    const b = data[0];
+                    document.getElementById("book_no").value = b.book_no;
+                    document.getElementById("title").value = b.title;
+                    document.getElementById("author").value = b.author;
+                    document.getElementById("category").value = b.category;
+                    document.getElementById("availability").value = b.availability;
+                }
+            });
         }
-
+    
         // Initial load
         loadBooks();
     </script>
-
+    
 </body>
 
 </html>

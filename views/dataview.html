@@ -68,13 +68,54 @@
     </div>
 
     <script>
+        const QUERY_LIMIT = 20; 
+    
         let currentSortCol = -1;
         let currentSortDir = "asc";
-
+    
         function loadData() {
             const search = document.getElementById("searchInput").value;
             const filter = document.getElementById("filter").value;
-
+    
+            let baseSql = `
+                FROM Lends l
+                JOIN Books b ON l.book_no = b.book_no
+                JOIN Students s ON l.admission_no = s.admission_no
+            `;
+    
+            const conditions = [];
+    
+            if (filter === "borrowed") {
+                conditions.push("l.return_date IS NULL AND DATEDIFF(CURDATE(), l.lend_date) <= 7");
+            } else if (filter === "returned") {
+                conditions.push("l.return_date IS NOT NULL");
+            } else if (filter === "overdue") {
+                conditions.push("l.return_date IS NULL AND DATEDIFF(CURDATE(), l.lend_date) > 7");
+            }
+    
+            if (search) {
+                const normalized = search.replace(/[-\s]+/g, "");
+                const match = normalized.match(/^([A-Za-z0-9]+)(\d+)$/);
+    
+                if (match) {
+                    const className = match[1];
+                    const classNumber = match[2];
+                    conditions.push(`(s.class='${className}' AND s.class_number=${classNumber})`);
+                } else {
+                    conditions.push(`(
+                        l.book_no LIKE '%${search}%' OR 
+                        b.title LIKE '%${search}%' OR 
+                        s.student_name LIKE '%${search}%'
+                    )`);
+                }
+            }
+    
+            let whereClause = "";
+            if (conditions.length > 0) {
+                whereClause = " WHERE " + conditions.join(" AND ");
+            }
+    
+            // Query for table data with LIMIT
             let sql = `
                 SELECT 
                     l.id,
@@ -90,65 +131,51 @@
                         WHEN DATEDIFF(CURDATE(), l.lend_date) > 7 THEN 'Overdue'
                         ELSE 'Borrowed'
                     END AS status
-                FROM Lends l
-                JOIN Books b ON l.book_no = b.book_no
-                JOIN Students s ON l.admission_no = s.admission_no
+                ${baseSql}
+                ${whereClause}
+                ORDER BY l.lend_date DESC
+                LIMIT ${QUERY_LIMIT}
             `;
-
-            const conditions = [];
-
-            if (filter === "borrowed") {
-                conditions.push("l.return_date IS NULL AND DATEDIFF(CURDATE(), l.lend_date) <= 7");
-            } else if (filter === "returned") {
-                conditions.push("l.return_date IS NOT NULL");
-            } else if (filter === "overdue") {
-                conditions.push("l.return_date IS NULL AND DATEDIFF(CURDATE(), l.lend_date) > 7");
-            }
-
-            if (search) {
-                const normalized = search.replace(/[-\s]+/g, "");
-                const match = normalized.match(/^([A-Za-z0-9]+)(\d+)$/);
-
-                if (match) {
-                    const className = match[1];
-                    const classNumber = match[2];
-                    conditions.push(`(s.class='${className}' AND s.class_number=${classNumber})`);
-                } else {
-                    conditions.push(`(
-                        l.book_no LIKE '%${search}%' OR 
-                        b.title LIKE '%${search}%' OR 
-                        s.student_name LIKE '%${search}%'
-                    )`);
-                }
-            }
-
-            if (conditions.length > 0) {
-                sql += " WHERE " + conditions.join(" AND ");
-            }
-
-            sql += " ORDER BY l.lend_date DESC";
-
-            fetch('/api/sql', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ query: sql })
-            })
-                .then(res => res.json())
-                .then(data => {
-                    renderTable(data);
-                    renderStats(data);
-                });
+    
+            // Query for stats (counts only)
+            let statsSql = `
+                SELECT 
+                    COUNT(*) AS total,
+                    SUM(CASE WHEN l.return_date IS NULL AND DATEDIFF(CURDATE(), l.lend_date) <= 7 THEN 1 ELSE 0 END) AS borrowed,
+                    SUM(CASE WHEN l.return_date IS NOT NULL THEN 1 ELSE 0 END) AS returned,
+                    SUM(CASE WHEN l.return_date IS NULL AND DATEDIFF(CURDATE(), l.lend_date) > 7 THEN 1 ELSE 0 END) AS overdue
+                ${baseSql}
+                ${whereClause}
+            `;
+    
+            Promise.all([
+                fetch('/api/sql', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query: sql })
+                }).then(res => res.json()),
+    
+                fetch('/api/sql', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query: statsSql })
+                }).then(res => res.json())
+            ])
+            .then(([data, stats]) => {
+                renderTable(data);
+                renderStats(stats[0]); // stats returns one row
+            });
         }
-
+    
         function renderTable(data) {
             const tbody = document.getElementById("dataBody");
             tbody.innerHTML = "";
-
+    
             if (data.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted py-4">No records found</td></tr>`;
                 return;
             }
-
+    
             data.forEach(row => {
                 let statusBadge;
                 if (row.status === 'Returned') {
@@ -158,7 +185,7 @@
                 } else {
                     statusBadge = '<span class="badge bg-warning text-dark">Borrowed</span>';
                 }
-
+    
                 tbody.innerHTML += `
                     <tr class="${row.status === 'Overdue' ? 'table-danger' : ''}">
                         <td>${row.book_no}</td>
@@ -173,76 +200,66 @@
                 `;
             });
         }
-
-        function renderStats(data) {
-            const total = data.length;
-            const borrowed = data.filter(r => r.status === "Borrowed").length;
-            const returned = data.filter(r => r.status === "Returned").length;
-            const overdue = data.filter(r => r.status === "Overdue").length;
-
+    
+        function renderStats(stats) {
             const statsRow = document.getElementById("statsRow");
             statsRow.innerHTML = `
                 <div class="col-md-3">
                     <div class="card bg-dark p-3 text-center border">
                         <h6 class="text-light mb-1">Total Records</h6>
-                        <h3 class="text-light mb-0">${total}</h3>
+                        <h3 class="text-light mb-0">${stats.total}</h3>
                     </div>
                 </div>
                 <div class="col-md-3">
                     <div class="card bg-dark p-3 text-center border border-warning">
                         <h6 class="text-warning mb-1">Currently Borrowed</h6>
-                        <h3 class="text-warning mb-0">${borrowed}</h3>
+                        <h3 class="text-warning mb-0">${stats.borrowed}</h3>
                     </div>
                 </div>
                 <div class="col-md-3">
                     <div class="card bg-dark p-3 text-center border border-success">
                         <h6 class="text-success mb-1">Returned</h6>
-                        <h3 class="text-success mb-0">${returned}</h3>
+                        <h3 class="text-success mb-0">${stats.returned}</h3>
                     </div>
                 </div>
                 <div class="col-md-3">
                     <div class="card bg-dark p-3 text-center border border-danger">
                         <h6 class="text-danger mb-1">Overdue</h6>
-                        <h3 class="text-danger mb-0">${overdue}</h3>
+                        <h3 class="text-danger mb-0">${stats.overdue}</h3>
                     </div>
                 </div>
             `;
         }
-
-        // Fixed sorting function
+    
+        // Sorting function remains unchanged
         function sortTable(colIndex) {
             const table = document.getElementById("dataTable");
             const tbody = table.querySelector("tbody");
             const rows = Array.from(tbody.querySelectorAll("tr"));
-
-            // Toggle direction if same column, otherwise reset to asc
+    
             if (currentSortCol === colIndex) {
                 currentSortDir = currentSortDir === "asc" ? "desc" : "asc";
             } else {
                 currentSortCol = colIndex;
                 currentSortDir = "asc";
             }
-
+    
             rows.sort((a, b) => {
                 const aCell = a.cells[colIndex];
                 const bCell = b.cells[colIndex];
-
-                // Use textContent to get plain text (ignores HTML badges)
+    
                 let aVal = aCell.textContent.trim();
                 let bVal = bCell.textContent.trim();
-
-                // Handle "-" as empty/lowest value
+    
                 if (aVal === "-") aVal = "";
                 if (bVal === "-") bVal = "";
-
-                // Try numeric comparison first (for Book No, Class No)
+    
                 const aNum = parseFloat(aVal);
                 const bNum = parseFloat(bVal);
                 if (!isNaN(aNum) && !isNaN(bNum)) {
                     return currentSortDir === "asc" ? aNum - bNum : bNum - aNum;
                 }
-
-                // Try date comparison (for date columns: index 5 and 6)
+    
                 if (colIndex === 5 || colIndex === 6) {
                     const aDate = new Date(aVal);
                     const bDate = new Date(bVal);
@@ -250,17 +267,14 @@
                         return currentSortDir === "asc" ? aDate - bDate : bDate - aDate;
                     }
                 }
-
-                // Fallback to string comparison
+    
                 if (aVal < bVal) return currentSortDir === "asc" ? -1 : 1;
                 if (aVal > bVal) return currentSortDir === "asc" ? 1 : -1;
                 return 0;
             });
-
-            // Re-append sorted rows
+    
             rows.forEach(row => tbody.appendChild(row));
-
-            // Update header arrows
+    
             const headers = table.querySelectorAll("thead th");
             headers.forEach((th, i) => {
                 const arrow = i === colIndex 
@@ -269,16 +283,17 @@
                 th.textContent = th.textContent.replace(/ [↑↓↕]$/, "") + arrow;
             });
         }
-
+    
         function formatDate(dateString) {
             if (!dateString) return "-";
             const date = new Date(dateString);
             return date.toISOString().split('T')[0];
         }
-
+    
         // Initial load
         loadData();
     </script>
+    
 
 </body>
 

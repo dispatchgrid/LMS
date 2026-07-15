@@ -19,3 +19,4 @@ document.addEventListener("DOMContentLoaded", () => {
       navbarTxt.innerHTML = `<a href="/dashboard" class="text-decoration-none text-light">Library Management System </a>`;
     }
   });
+

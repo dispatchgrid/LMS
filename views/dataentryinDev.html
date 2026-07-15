@@ -69,7 +69,8 @@
                                     <th>Author</th>
                                     <th>Price</th>
                                     <th>Category</th>
-                                    <th>Undo</th>
+                                    <th>Updated</th>
+                                    <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="recentEntries">
@@ -90,28 +91,27 @@
         let recognizing = false;
         let approvedTitle = "";
         let approvedAuthor = "";
-
+    
         const queryUrl = "/api/sql";
         const startBtn = document.getElementById("startBtn");
         const dictationBox = document.getElementById("dictation");
         const preview = document.getElementById("preview");
-
-        // Track updated book numbers in localStorage
+    
+        // Track updated book numbers with timestamps in localStorage
         if (!localStorage.getItem("updatedBooks")) {
             localStorage.setItem("updatedBooks", JSON.stringify([]));
         }
-
+    
         // Manual navigation
-        // Validate book number immediately when entered
         document.getElementById("book_no").addEventListener("keydown", e => {
             if (e.key === "Enter") {
                 e.preventDefault();
                 const bookNo = document.getElementById("book_no").value.trim();
-
+    
                 if (!bookNo) return;
-
+    
                 const sqlCheck = `SELECT book_no FROM books WHERE book_no = '${bookNo}'`;
-
+    
                 fetch(queryUrl, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -120,29 +120,22 @@
                     .then(res => res.json())
                     .then(rows => {
                         if (!rows || rows.length === 0) {
-                            // Show Bootstrap alert
-                           
                             preview.textContent = "The book number does not exist in the database";
-
-                            // Clear and refocus
                             document.getElementById("book_no").value = "";
                             document.getElementById("book_no").focus();
                         } else {
-                            
                             preview.textContent = "";
                             e.preventDefault();
                             document.getElementById("lang").focus();
                             document.getElementById("lang").select();
-
                         }
                     })
                     .catch(err => {
-                        
                         preview.textContent = err.msg;
                     });
             }
         });
-
+    
         document.getElementById("lang").addEventListener("keydown", e => {
             if (e.key === "Enter") {
                 e.preventDefault();
@@ -154,7 +147,6 @@
                 e.preventDefault();
                 document.getElementById("category").focus();
                 document.getElementById("category").select();
-
             }
         });
         document.getElementById("category").addEventListener("keydown", e => {
@@ -163,133 +155,160 @@
                 document.getElementById("bookEntryForm").requestSubmit();
             }
         });
-
+    
         loadRecentEntries();
-
+    
         // Voice recognition setup
         if (window.SpeechRecognition || window.webkitSpeechRecognition) {
             recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
             recognition.continuous = true;
             recognition.interimResults = true;
-
+    
             recognition.onresult = (event) => {
+                
                 let transcript = "";
+                let final = "";
                 for (let i = event.resultIndex; i < event.results.length; i++) {
                     transcript += event.results[i][0].transcript;
+                    if(event.results[i].isFinal){
+                        final += event.results[i][0].transcript;
+                    }
                 }
-                dictationBox.value = transcript;
-            };
+                // Prepend saved text from previous sessions
 
+                dictationBox.value = dictationBox.value + final;
+            };
+    
             recognition.onerror = (event) => {
                 preview.textContent = "Error: " + event.error;
             };
         } else {
             preview.textContent = "Speech Recognition not supported in this browser.";
         }
-
+    
         startBtn.addEventListener("click", () => {
             if (!recognition) return;
             const langInput = document.getElementById("lang").value.toLowerCase();
             recognition.lang = (langInput === "e") ? "en-US" : "si-LK";
-
+    
             if (!recognizing) {
+                // Save existing text before starting new session
                 recognition.start();
                 recognizing = true;
                 startBtn.textContent = "Stop Recognition";
                 startBtn.classList.remove("btn-primary");
                 startBtn.classList.add("btn-danger");
-                
             } else {
                 recognition.stop();
                 recognizing = false;
                 startBtn.textContent = "Start Recognition";
                 startBtn.classList.remove("btn-danger");
                 startBtn.classList.add("btn-primary");
+                // Save the final text after stopping
                 processCapturedText(dictationBox.value, langInput);
             }
         });
-
+    
         function processCapturedText(text, lang) {
             const trimmed = text.trim();
-
-            // Language-specific validation
             let valid = false;
             if (lang === "e") {
                 valid = /book/i.test(trimmed) && !/^book$/i.test(trimmed);
             } else {
                 valid = /පොත/.test(trimmed) && trimmed !== "පොත";
             }
-
+    
             if (!valid) {
                 preview.textContent = "Invalid format. Must include keyword with actual content. Retry.";
                 startBtn.focus();
                 return;
             }
-
+    
             let cleaned = trimmed.replace(/[.,\-]+/g, " ").replace(/\s+/g, " ").trim();
-
-            // Split by English "by" or Sinhala "ලියන්නා"
             let parts = cleaned.split(/ by | ලියන්නා /i);
-
+    
             let title = parts[0].replace(/^book\s+/i, "").replace(/^පොත\s+/i, "").trim();
             let author = parts[1] ? parts[1].trim() : "";
-
+    
             preview.innerHTML = `
-    <strong>Preview:</strong><br>
-    Title: ${title}<br>
-    Author: ${author || "(empty)"}<br>
-    <label>Approve? (1=Yes, 0=No):</label>
-    <input type="text" id="approveField" value="1" class="form-control form-control-sm w-25">
-  `;
-
+                <strong>Preview:</strong><br>
+                Title: ${title}<br>
+                Author: ${author || "(empty)"}<br>
+                <label>Approve? (1=Yes, 0=No):</label>
+                <input type="text" id="approveField" value="1" class="form-control form-control-sm w-25">
+            `;
+    
             const approveField = document.getElementById("approveField");
             approveField.focus();
-
+            approveField.select();
             approveField.addEventListener("keydown", e => {
                 if (e.key === "Enter") {
                     e.preventDefault();
                     if (approveField.value === "1") {
-                        approveEntry(title, author);
+                        approveEntry(title, author, lang);
                     } else {
                         retryEntry();
                     }
                 }
             });
         }
-
-
-        function approveEntry(title, author) {
+    
+        function approveEntry(title, author, lang) {
             approvedTitle = title;
             approvedAuthor = author;
-            const authorSeperator = (lang=="s")?"ලියන්නා":"by";
-            
+            const authorSeperator = (lang === "s") ? "ලියන්නා" : "by";
             preview.textContent = `Approved: ${title} by ${author || "-"}`;
             document.getElementById("price").focus();
         }
-
+    
         function retryEntry() {
             dictationBox.value = "";
             preview.textContent = "Please retry voice capture.";
             startBtn.focus();
         }
-
+    
+        // Helper function to add/update book entry with timestamp
+        function addUpdatedBook(bookNo) {
+            let updated = JSON.parse(localStorage.getItem("updatedBooks"));
+            updated = updated.filter(b => b.bookNo !== bookNo);
+            updated.push({
+                bookNo: bookNo,
+                timestamp: Date.now()
+            });
+            localStorage.setItem("updatedBooks", JSON.stringify(updated));
+        }
+    
+        // Helper function to get sorted book numbers (newest first)
+        function getSortedBookNumbers() {
+            const updated = JSON.parse(localStorage.getItem("updatedBooks"));
+            return updated
+                .sort((a, b) => b.timestamp - a.timestamp)
+                .map(b => b.bookNo);
+        }
+    
+        // Helper function to format timestamp
+        function formatTimestamp(timestamp) {
+            const date = new Date(timestamp);
+            return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        }
+    
         // Approve/save entry
         document.getElementById("bookEntryForm").addEventListener("submit", (e) => {
             e.preventDefault();
-
+    
             const bookNo = document.getElementById("book_no").value;
             const price = document.getElementById("price").value || 0;
             const category = document.getElementById("category").value.trim();
-
+    
             const sqlUpdate = `
-            UPDATE books
-            SET title = '${approvedTitle}',
-                author = '${approvedAuthor}',
-                price = ${price},
-                category = '${category}'
-            WHERE book_no = '${bookNo}';
-          `;
-
+                UPDATE books
+                SET title = '${approvedTitle}',
+                    author = '${approvedAuthor}',
+                    price = ${price},
+                    category = '${category}'
+                WHERE book_no = '${bookNo}';
+            `;
+    
             fetch(queryUrl, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -298,18 +317,13 @@
                 .then(res => res.text())
                 .then(msg => {
                     console.log("DB updated:", msg);
-                    // Track updated book in localStorage
-                    let updated = JSON.parse(localStorage.getItem("updatedBooks"));
-                    if (!updated.includes(bookNo)) {
-                        updated.push(bookNo);
-                        localStorage.setItem("updatedBooks", JSON.stringify(updated));
-                    }
+                    addUpdatedBook(bookNo);
                     loadRecentEntries();
                 })
                 .catch(err => {
                     preview.textContent = "Error updating DB: " + err.message;
                 });
-
+    
             // Reset form except category
             document.getElementById("book_no").value = "";
             document.getElementById("price").value = "";
@@ -317,16 +331,22 @@
             preview.textContent = "";
             document.getElementById("book_no").focus();
         });
-
+    
         function loadRecentEntries() {
-            const updated = JSON.parse(localStorage.getItem("updatedBooks"));
-            if (updated.length === 0) {
-                document.getElementById("recentEntries").innerHTML = "<tr><td colspan='6'>No recent updates</td></tr>";
+            const sortedBookNos = getSortedBookNumbers();
+            
+            if (sortedBookNos.length === 0) {
+                document.getElementById("recentEntries").innerHTML = "<tr><td colspan='7'>No recent updates</td></tr>";
                 return;
             }
-
-            const sql = `SELECT book_no, title, author, price, category FROM books WHERE book_no IN (${updated.map(b => `'${b}'`).join(",")})`;
-
+    
+            const updatedMap = {};
+            JSON.parse(localStorage.getItem("updatedBooks")).forEach(b => {
+                updatedMap[b.bookNo] = b.timestamp;
+            });
+    
+            const sql = `SELECT book_no, title, author, price, category FROM books WHERE book_no IN (${sortedBookNos.map(b => `'${b}'`).join(",")})`;
+    
             fetch(queryUrl, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -336,31 +356,34 @@
                 .then(rows => {
                     const tbody = document.getElementById("recentEntries");
                     tbody.innerHTML = "";
+                    rows.sort((a, b) => (updatedMap[b.book_no] || 0) - (updatedMap[a.book_no] || 0));
+                    
                     rows.forEach(e => {
                         const tr = document.createElement("tr");
                         tr.innerHTML = `
-                <td>${e.book_no}</td>
-                <td>${e.title || ""}</td>
-                <td>${e.author || ""}</td>
-                <td>${e.price || ""}</td>
-                <td>${e.category || ""}</td>
-                <td><button class="btn btn-sm btn-danger" onclick="undoEntry('${e.book_no}')">Undo</button></td>
-              `;
+                            <td>${e.book_no}</td>
+                            <td>${e.title || ""}</td>
+                            <td>${e.author || ""}</td>
+                            <td>${e.price || ""}</td>
+                            <td>${e.category || ""}</td>
+                            <td>${formatTimestamp(updatedMap[e.book_no])}</td>
+                            <td><button class="btn btn-sm btn-danger" onclick="undoEntry('${e.book_no}')">Undo</button></td>
+                        `;
                         tbody.appendChild(tr);
                     });
                 });
         }
-
+    
         function undoEntry(bookNo) {
             const sql = `
-    UPDATE books
-    SET title = NULL,
-        author = NULL,
-        price = NULL,
-        category = NULL
-    WHERE book_no = '${bookNo}';
-  `;
-
+                UPDATE books
+                SET title = NULL,
+                    author = NULL,
+                    price = NULL,
+                    category = NULL
+                WHERE book_no = '${bookNo}';
+            `;
+    
             fetch(queryUrl, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -369,9 +392,8 @@
                 .then(res => res.text())
                 .then(msg => {
                     console.log("DB cleared:", msg);
-                    // Remove from localStorage
                     let updated = JSON.parse(localStorage.getItem("updatedBooks"));
-                    updated = updated.filter(b => b !== bookNo);
+                    updated = updated.filter(b => b.bookNo !== bookNo);
                     localStorage.setItem("updatedBooks", JSON.stringify(updated));
                     loadRecentEntries();
                 })
