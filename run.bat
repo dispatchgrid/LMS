@@ -1,7 +1,14 @@
 @echo off
-set PORT=3000
-set WAIT_TIME=5
-set PAGE=dataentry
+cd /d %~dp0
 
-echo Starting server on port %PORT%...
-start cmd /k "npm start"
+git fetch origin
+
+for /f %%i in ('git rev-parse HEAD') do set LOCAL=%%i
+for /f %%i in ('git rev-parse origin/main') do set REMOTE=%%i
+
+if "%LOCAL%"=="%REMOTE%" (
+    start.bat
+) else (
+    update.bat
+)
+

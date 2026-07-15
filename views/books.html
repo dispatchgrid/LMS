@@ -25,7 +25,7 @@
 
             <!-- Left Side: Book Details -->
             <div class="col-md-4" style="min-height: 50%;">
-                <div class="card bg-secondary text-light p-3" >
+                <div class="card bg-secondary text-light p-3">
                     <h4 class="mb-3">Add / Edit Book</h4>
                     <form id="bookForm">
                         <div class="mb-3">
@@ -55,7 +55,7 @@
             </div>
 
             <!-- Right Side: Student Details -->
-            <div class="col-md-8" >
+            <div class="col-md-8">
                 <div class="card bg-secondary text-light p-3">
                     <h4 class="mb-3">Book Records</h4>
                     <div class="input-group mb-3">
@@ -86,7 +86,7 @@
     </div>
     <script>
         const QUERY_LIMIT = 20; // Change this value to adjust row limit
-    
+
         function loadBooks() {
             const sql = `SELECT book_no, title, author, category, availability 
                          FROM Books 
@@ -96,15 +96,15 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ query: sql })
             })
-            .then(res => res.json())
-            .then(data => renderTable(data));
+                .then(res => res.json())
+                .then(data => renderTable(data));
         }
-    
+
         document.querySelectorAll('#bookForm input').forEach((input, index, inputs) => {
             input.addEventListener('keydown', function (e) {
                 if (e.key === 'Enter') {
                     e.preventDefault(); // Prevent form submission
-    
+
                     if (index < inputs.length - 1) {
                         inputs[index + 1].focus();
                     } else {
@@ -113,7 +113,7 @@
                 }
             });
         });
-    
+
         document.getElementById("bookForm").addEventListener("submit", function (e) {
             e.preventDefault();
             const book_no = document.getElementById("book_no").value;
@@ -121,7 +121,7 @@
             const author = document.getElementById("author").value;
             const category = document.getElementById("category").value;
             const availability = document.getElementById("availability").value;
-        
+
             const sql = `
             INSERT INTO Books (book_no, title, author, category, availability)
             VALUES (${book_no}, '${title}', '${author}', '${category}', ${availability})
@@ -133,11 +133,11 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ query: sql })
             })
-            .then(() => loadBooks());
-    
+                .then(() => loadBooks());
+
             this.reset();
         });
-    
+
         // Delete book
         function deleteBook(id) {
             const sql = `DELETE FROM Books WHERE book_no=${id}`;
@@ -146,29 +146,37 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ query: sql })
             })
-            .then(() => loadBooks());
+                .then(() => loadBooks());
         }
-    
+
         // Search book (also limited)
         function searchBook() {
-            const query = document.getElementById("searchInput").value;
+            const query = document.getElementById("searchInput").value.trim();
+
+            if (!query) {
+                // Optionally clear table or show all books
+                loadBooks();
+                return;
+            }
+
             const sql = `SELECT book_no, title, author, category, availability
-                         FROM Books
-                         WHERE book_no='${query}' 
-                            OR title LIKE '%${query}%' 
-                            OR author LIKE '%${query}%' 
-                            OR category LIKE '%${query}%'
-                         LIMIT ${QUERY_LIMIT}`;
-    
+                 FROM Books
+                 WHERE book_no='${query}' 
+                    OR title LIKE '%${query}%' 
+                    OR author LIKE '%${query}%' 
+                    OR category LIKE '%${query}%'
+                 LIMIT 20`;
+
             fetch('/api/sql', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ query: sql })
             })
-            .then(res => res.json())
-            .then(data => renderTable(data));
+                .then(res => res.json())
+                .then(data => renderTable(data));
         }
-    
+
+
         // Render table
         function renderTable(books) {
             const tbody = document.getElementById("bookTable");
@@ -189,7 +197,7 @@
                 `;
             });
         }
-    
+
         // Edit book (prefill form)
         function editBook(id) {
             const sql = `SELECT * FROM Books WHERE book_no=${id} LIMIT 1`;
@@ -198,23 +206,23 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ query: sql })
             })
-            .then(res => res.json())
-            .then(data => {
-                if (data.length > 0) {
-                    const b = data[0];
-                    document.getElementById("book_no").value = b.book_no;
-                    document.getElementById("title").value = b.title;
-                    document.getElementById("author").value = b.author;
-                    document.getElementById("category").value = b.category;
-                    document.getElementById("availability").value = b.availability;
-                }
-            });
+                .then(res => res.json())
+                .then(data => {
+                    if (data.length > 0) {
+                        const b = data[0];
+                        document.getElementById("book_no").value = b.book_no;
+                        document.getElementById("title").value = b.title;
+                        document.getElementById("author").value = b.author;
+                        document.getElementById("category").value = b.category;
+                        document.getElementById("availability").value = b.availability;
+                    }
+                });
         }
-    
+
         // Initial load
         loadBooks();
     </script>
-    
+
 </body>
 
 </html>

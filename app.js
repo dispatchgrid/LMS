@@ -240,7 +240,7 @@ app.listen(port, () => {
       }, 20);
     }
 }else{
-    //exec(`start http://localhost:${port}`);
+    exec(`start http://localhost:${port}`);
 
 }
 });

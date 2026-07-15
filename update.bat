@@ -1,4 +1,4 @@
 @echo off
 git pull
 npm install
-run.bat
+start.bat
