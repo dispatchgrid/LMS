@@ -6,7 +6,8 @@ const { exec } = require('child_process');
 
 let dev = false;
 
-require('dotenv').config();
+require('dotenv').config({ debug: false, quiet: true });
+
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
