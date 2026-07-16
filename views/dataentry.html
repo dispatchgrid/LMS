@@ -41,7 +41,8 @@
                             <label for="dictation" class="form-label">Dictated Text</label>
                             <input type="text" id="dictation" class="form-control" readonly>
                         </div>
-                        <button type="button" class="btn btn-primary w-100 mb-3" id="startBtn">Start Recognition</button>
+                        <button type="button" class="btn btn-primary w-100 mb-3" id="startBtn">Start
+                            Recognition</button>
                         <div id="preview" class="mb-3"></div>
                         <div class="mb-3">
                             <label for="price" class="form-label">Price</label>
@@ -91,27 +92,27 @@
         let recognizing = false;
         let approvedTitle = "";
         let approvedAuthor = "";
-    
+
         const queryUrl = "/api/sql";
         const startBtn = document.getElementById("startBtn");
         const dictationBox = document.getElementById("dictation");
         const preview = document.getElementById("preview");
-    
+
         // Track updated book numbers with timestamps in localStorage
         if (!localStorage.getItem("updatedBooks")) {
             localStorage.setItem("updatedBooks", JSON.stringify([]));
         }
-    
+
         // Manual navigation
         document.getElementById("book_no").addEventListener("keydown", e => {
             if (e.key === "Enter") {
                 e.preventDefault();
                 const bookNo = document.getElementById("book_no").value.trim();
-    
+
                 if (!bookNo) return;
-    
-                const sqlCheck = `SELECT book_no FROM books WHERE book_no = '${bookNo}'`;
-    
+
+                const sqlCheck = `SELECT book_no,title FROM books WHERE book_no = '${bookNo}'`;
+
                 fetch(queryUrl, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -126,8 +127,20 @@
                         } else {
                             preview.textContent = "";
                             e.preventDefault();
-                            document.getElementById("lang").focus();
-                            document.getElementById("lang").select();
+                            if (rows[0].title != "") {
+                                const duplicateAllow = confirm("You want to continue?");
+                                if (!duplicateAllow) {
+                                    document.getElementById("book_no").value = "";
+                                    document.getElementById("book_no").focus();
+                                } else {
+                                    document.getElementById("lang").focus();
+                                    document.getElementById("lang").select();
+                                }
+                            } else {
+                                document.getElementById("lang").focus();
+                                document.getElementById("lang").select();
+                            }
+
                         }
                     })
                     .catch(err => {
@@ -135,7 +148,7 @@
                     });
             }
         });
-    
+
         document.getElementById("lang").addEventListener("keydown", e => {
             if (e.key === "Enter") {
                 e.preventDefault();
@@ -162,22 +175,22 @@
             }
 
         });
-    
+
         loadRecentEntries();
-    
+
         // Voice recognition setup
         if (window.SpeechRecognition || window.webkitSpeechRecognition) {
             recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
             recognition.continuous = true;
             recognition.interimResults = true;
-    
+
             recognition.onresult = (event) => {
-                
+
                 let transcript = "";
                 let final = "";
                 for (let i = event.resultIndex; i < event.results.length; i++) {
                     transcript += event.results[i][0].transcript;
-                    if(event.results[i].isFinal){
+                    if (event.results[i].isFinal) {
                         final += event.results[i][0].transcript;
                     }
                 }
@@ -185,19 +198,19 @@
 
                 dictationBox.value = dictationBox.value + final;
             };
-    
+
             recognition.onerror = (event) => {
                 preview.textContent = "Error: " + event.error;
             };
         } else {
             preview.textContent = "Speech Recognition not supported in this browser.";
         }
-    
+
         startBtn.addEventListener("click", () => {
             if (!recognition) return;
             const langInput = document.getElementById("lang").value.toLowerCase();
             recognition.lang = (langInput === "e") ? "en-US" : "si-LK";
-    
+
             if (!recognizing) {
                 // Save existing text before starting new session
                 recognition.start();
@@ -215,41 +228,56 @@
                 processCapturedText(dictationBox.value, langInput);
             }
         });
-    
+
         function processCapturedText(text, lang) {
-            const trimmed = text.trim();
+            //const trimmed = text.trim();
+            const trimmed = "Oliver Twist by Charles DIckes"
             let valid = false;
-            if (lang === "e") {
+            /*if (lang === "e") {
                 valid = /book/i.test(trimmed) && !/^book$/i.test(trimmed);
             } else {
                 valid = /පොත/.test(trimmed) && trimmed !== "පොත";
+            }*/
+            if (trimmed != "") {
+                valid = true;
             }
-    
+
+
             if (!valid) {
                 preview.textContent = "Invalid format. Must include keyword with actual content. Retry.";
                 startBtn.focus();
                 return;
             }
-    
+
             let cleaned = trimmed.replace(/[.,\-]+/g, " ").replace(/\s+/g, " ").trim();
             let parts = cleaned.split(/ by | ලියන්නා /i);
-    
+
             let title = parts[0].replace(/^book\s+/i, "").replace(/^පොත\s+/i, "").trim();
             let author = parts[1] ? parts[1].trim() : "";
-    
+
             preview.innerHTML = `
-                <strong>Preview:</strong><br>
-                Title: ${title}<br>
-                Author: ${author || "(empty)"}<br>
-                <label>Approve? (1=Yes, 0=No):</label>
-                <input type="text" id="approveField" value="1" class="form-control form-control-sm w-25">
-            `;
+  <strong>Preview:</strong><br>
+  <div class="d-flex align-items-center mb-2">
+    <input type="text" id="titleApproveField" value="${title}" class="form-control form-control-sm w-25 me-2">
     
+    <span class="mx-2">by</span>
+    
+    <input type="text" id="authorApproveField" value="${author || ""}" class="form-control form-control-sm w-25">
+  </div>
+  
+  <label>Approve? (1=Yes, 0=No):</label>
+  <input type="text" id="approveField" value="1" class="form-control form-control-sm w-25">
+`;
+
+
             const approveField = document.getElementById("approveField");
             approveField.focus();
             approveField.select();
             approveField.addEventListener("keydown", e => {
                 if (e.key === "Enter") {
+                    title = document.getElementById("titleApproveField").value;
+                    author = document.getElementById("authorApproveField").value;
+
                     e.preventDefault();
                     if (approveField.value === "1") {
                         approveEntry(title, author, lang);
@@ -259,7 +287,7 @@
                 }
             });
         }
-    
+
         function approveEntry(title, author, lang) {
             approvedTitle = title;
             approvedAuthor = author;
@@ -267,13 +295,13 @@
             preview.textContent = `Approved: ${title} by ${author || "-"}`;
             document.getElementById("price").focus();
         }
-    
+
         function retryEntry() {
             dictationBox.value = "";
             preview.textContent = "Please retry voice capture.";
             startBtn.focus();
         }
-    
+
         // Helper function to add/update book entry with timestamp
         function addUpdatedBook(bookNo) {
             let updated = JSON.parse(localStorage.getItem("updatedBooks"));
@@ -284,7 +312,7 @@
             });
             localStorage.setItem("updatedBooks", JSON.stringify(updated));
         }
-    
+
         // Helper function to get sorted book numbers (newest first)
         function getSortedBookNumbers() {
             const updated = JSON.parse(localStorage.getItem("updatedBooks"));
@@ -292,21 +320,21 @@
                 .sort((a, b) => b.timestamp - a.timestamp)
                 .map(b => b.bookNo);
         }
-    
+
         // Helper function to format timestamp
         function formatTimestamp(timestamp) {
             const date = new Date(timestamp);
             return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
         }
-    
+
         // Approve/save entry
         document.getElementById("bookEntryForm").addEventListener("submit", (e) => {
             e.preventDefault();
-    
+
             const bookNo = document.getElementById("book_no").value;
             const price = document.getElementById("price").value || 0;
             const category = document.getElementById("category").value.trim();
-    
+
             const sqlUpdate = `
                 UPDATE books
                 SET title = '${approvedTitle}',
@@ -315,7 +343,7 @@
                     category = '${category}'
                 WHERE book_no = '${bookNo}';
             `;
-    
+
             fetch(queryUrl, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -330,27 +358,27 @@
                 .catch(err => {
                     preview.textContent = "Error updating DB: " + err.message;
                 });
-    
+
             // Reset form except category
             resetForm();
-            
+
         });
-    
+
         function loadRecentEntries() {
             const sortedBookNos = getSortedBookNumbers();
-            
+
             if (sortedBookNos.length === 0) {
                 document.getElementById("recentEntries").innerHTML = "<tr><td colspan='7'>No recent updates</td></tr>";
                 return;
             }
-    
+
             const updatedMap = {};
             JSON.parse(localStorage.getItem("updatedBooks")).forEach(b => {
                 updatedMap[b.bookNo] = b.timestamp;
             });
-    
+
             const sql = `SELECT book_no, title, author, price, category FROM books WHERE book_no IN (${sortedBookNos.map(b => `'${b}'`).join(",")})`;
-    
+
             fetch(queryUrl, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -361,7 +389,7 @@
                     const tbody = document.getElementById("recentEntries");
                     tbody.innerHTML = "";
                     rows.sort((a, b) => (updatedMap[b.book_no] || 0) - (updatedMap[a.book_no] || 0));
-                    
+
                     rows.forEach(e => {
                         const tr = document.createElement("tr");
                         tr.innerHTML = `
@@ -377,7 +405,7 @@
                     });
                 });
         }
-    
+
         function undoEntry(bookNo) {
             const sql = `
                 UPDATE books
@@ -387,7 +415,7 @@
                     category = NULL
                 WHERE book_no = '${bookNo}';
             `;
-    
+
             fetch(queryUrl, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -406,7 +434,7 @@
                 });
         }
 
-        function resetForm(){
+        function resetForm() {
             document.getElementById("book_no").value = "";
             document.getElementById("price").value = "";
             dictationBox.value = "";
