@@ -6,6 +6,7 @@
     <title>Books Management</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <script src="/script.js" defer></script>
 </head>
 
@@ -15,7 +16,7 @@
         <div class="container-fluid">
             <span class="navbar-brand mb-0 h1" id="navbarTxt">Library Management Dashboard</span>
             <div>
-                <button class="btn btn-danger" id="logoutBtn">Logout</button>
+                <div id="navbarContent"></div>
             </div>
         </div>
     </nav>
@@ -71,7 +72,7 @@
                                     <th>Author</th>
                                     <th>Category</th>
                                     <th>Availability</th>
-                                    <th>Actions</th>
+                                    <th class="text-center">Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="bookTable">
@@ -178,7 +179,7 @@
             })
                 .then(res => res.json())
                 .then(data => renderTable(data));
-                
+
         }
 
 
@@ -194,9 +195,8 @@
                         <td>${b.author || ''}</td>
                         <td>${b.category || ''}</td>
                         <td>${b.availability == 1 ? 'Available' : 'Unavailable'}</td>
-                        <td>
+                        <td class="text-center">
                             <button class="btn btn-sm btn-light" onclick="editBook('${b.book_no}')">Edit</button>
-                            <button class="btn btn-sm btn-danger" onclick="deleteBook('${b.book_no}')">Delete</button>
                         </td>
                     </tr>
                 `;

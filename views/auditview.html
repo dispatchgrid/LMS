@@ -1,14 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-  <meta charset="UTF-8">
-  <title>Audit Viewing</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="/style.css">
-  <!-- jsPDF + autoTable -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
- <script src="/script.js" defer></script>
+    <meta charset="UTF-8">
+    <title>Audit Viewing</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <!-- jsPDF + autoTable -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <script src="/script.js" defer></script>
 </head>
 
 <body class="bg-dark text-light">
@@ -17,61 +19,61 @@
         <div class="container-fluid">
             <span class="navbar-brand mb-0 h1" id="navbarTxt">Error</span>
             <div>
-                <button class="btn btn-danger" id="logoutBtn">Logout</button>
+                <div id="navbarContent"></div>
             </div>
 
         </div>
     </nav>
 
 
-  <div class="container my-4">
-    <div class="card bg-secondary text-light p-4">
-      <h3 class="mb-3">Audit Viewing</h3>
+    <div class="container my-4">
+        <div class="card bg-secondary text-light p-4">
+            <h3 class="mb-3">Audit Viewing</h3>
 
-      <!-- Date Range -->
-      <div class="row mb-3">
-        <div class="col-md-4">
-          <input type="date" id="fromDate" class="form-control">
-        </div>
-        <div class="col-md-4">
-          <input type="date" id="toDate" class="form-control">
-        </div>
-        <div class="col-md-4 d-flex gap-2">
-          <button class="btn btn-primary w-100" onclick="viewAudit()">View Audit</button>
-          <button class="btn btn-light w-100" onclick="exportPDF()">Export PDF</button>
-        </div>
-      </div>
+            <!-- Date Range -->
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <input type="date" id="fromDate" class="form-control">
+                </div>
+                <div class="col-md-4">
+                    <input type="date" id="toDate" class="form-control">
+                </div>
+                <div class="col-md-4 d-flex gap-2">
+                    <button class="btn btn-primary w-100" onclick="viewAudit()">View Audit</button>
+                    <button class="btn btn-light w-100" onclick="exportPDF()">Export PDF</button>
+                </div>
+            </div>
 
-      <!-- Statistics -->
-      <div id="stats" class="mb-3"></div>
+            <!-- Statistics -->
+            <div id="stats" class="mb-3"></div>
 
-      <!-- Missing Books Table -->
-      <div style="max-height:400px; overflow-y:auto;">
-        <table class="table table-striped text-light">
-          <thead>
-            <tr>
-              <th>Book No</th>
-              <th>Title</th>
-              <th>Author</th>
-              <th>Category</th>
-            </tr>
-          </thead>
-          <tbody id="missingTable"></tbody>
-        </table>
-      </div>
+            <!-- Missing Books Table -->
+            <div style="max-height:400px; overflow-y:auto;">
+                <table class="table table-striped text-light">
+                    <thead>
+                        <tr>
+                            <th>Book No</th>
+                            <th>Title</th>
+                            <th>Author</th>
+                            <th>Category</th>
+                        </tr>
+                    </thead>
+                    <tbody id="missingTable"></tbody>
+                </table>
+            </div>
+        </div>
     </div>
-  </div>
 
-  <script>
-    let auditStats = {};
-    let missingBooks = [];
+    <script>
+        let auditStats = {};
+        let missingBooks = [];
 
-    function viewAudit() {
-      const fromDate = document.getElementById("fromDate").value;
-      const toDate = document.getElementById("toDate").value;
+        function viewAudit() {
+            const fromDate = document.getElementById("fromDate").value;
+            const toDate = document.getElementById("toDate").value;
 
-      // Stats query
-      const statsSql = `
+            // Stats query
+            const statsSql = `
         SELECT 
           (SELECT COUNT(*) FROM Books) AS total_books,
           (SELECT COUNT(*) FROM Books WHERE book_no NOT IN (
@@ -79,30 +81,30 @@
           )) AS missing_books
       `;
 
-      fetch('/api/sql', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: statsSql })
-      })
-      .then(res => res.json())
-      .then(stats => {
-        const total = stats[0].total_books;
-        const missing = stats[0].missing_books;
-        const percentage = ((missing / total) * 100).toFixed(2);
+            fetch('/api/sql', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ query: statsSql })
+            })
+                .then(res => res.json())
+                .then(stats => {
+                    const total = stats[0].total_books;
+                    const missing = stats[0].missing_books;
+                    const percentage = ((missing / total) * 100).toFixed(2);
 
-        auditStats = { total, missing, percentage, fromDate, toDate };
+                    auditStats = { total, missing, percentage, fromDate, toDate };
 
-        document.getElementById("stats").innerHTML = `
+                    document.getElementById("stats").innerHTML = `
           <div class="card bg-secondary text-light p-2">
             <p>Total Books: ${total}</p>
             <p>Missing Books: ${missing}</p>
             <p>Percentage Missing: ${percentage}%</p>
           </div>
         `;
-      });
+                });
 
-      // Missing books query with details
-      const missingSql = `
+            // Missing books query with details
+            const missingSql = `
         SELECT b.book_no, b.title, b.author, b.category AS category
         FROM Books b
         WHERE b.book_no NOT IN (
@@ -110,18 +112,18 @@
         )
       `;
 
-      fetch('/api/sql', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: missingSql })
-      })
-      .then(res => res.json())
-      .then(data => {
-        missingBooks = data;
-        const tbody = document.getElementById("missingTable");
-        tbody.innerHTML = "";
-        data.forEach(row => {
-          tbody.innerHTML += `
+            fetch('/api/sql', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ query: missingSql })
+            })
+                .then(res => res.json())
+                .then(data => {
+                    missingBooks = data;
+                    const tbody = document.getElementById("missingTable");
+                    tbody.innerHTML = "";
+                    data.forEach(row => {
+                        tbody.innerHTML += `
             <tr>
               <td>${row.book_no}</td>
               <td>${row.title || ''}</td>
@@ -129,33 +131,34 @@
               <td>${row.category || ''}</td>
             </tr>
           `;
-        });
-      });
-    }
+                    });
+                });
+        }
 
-    function exportPDF() {
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF();
+        function exportPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
 
-      doc.setFontSize(14);
-      doc.text("Audit Report", 14, 20);
-      doc.setFontSize(11);
-      doc.text(`Date Range: ${auditStats.fromDate} to ${auditStats.toDate}`, 14, 30);
-      doc.text(`Total Books: ${auditStats.total}`, 14, 40);
-      doc.text(`Missing Books: ${auditStats.missing}`, 14, 50);
-      doc.text(`Percentage Missing: ${auditStats.percentage}%`, 14, 60);
+            doc.setFontSize(14);
+            doc.text("Audit Report", 14, 20);
+            doc.setFontSize(11);
+            doc.text(`Date Range: ${auditStats.fromDate} to ${auditStats.toDate}`, 14, 30);
+            doc.text(`Total Books: ${auditStats.total}`, 14, 40);
+            doc.text(`Missing Books: ${auditStats.missing}`, 14, 50);
+            doc.text(`Percentage Missing: ${auditStats.percentage}%`, 14, 60);
 
-      // Table of missing books
-      const rows = missingBooks.map(b => [b.book_no, b.title || '', b.author || '', b.category || '']);
-      doc.autoTable({
-        head: [["Book No", "Title", "Author", "Category"]],
-        body: rows,
-        startY: 70
-      });
+            // Table of missing books
+            const rows = missingBooks.map(b => [b.book_no, b.title || '', b.author || '', b.category || '']);
+            doc.autoTable({
+                head: [["Book No", "Title", "Author", "Category"]],
+                body: rows,
+                startY: 70
+            });
 
-      doc.save(`Audit_Report_${auditStats.fromDate}_to_${auditStats.toDate}.pdf`);
-    }
-  </script>
+            doc.save(`Audit_Report_${auditStats.fromDate}_to_${auditStats.toDate}.pdf`);
+        }
+    </script>
 
 </body>
+
 </html>
