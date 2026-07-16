@@ -4,7 +4,7 @@ const db = require('./config/db');
 const app = express();
 const { exec } = require('child_process');
 
-const dev = true;
+let dev = false;
 
 require('dotenv').config();
 
@@ -173,7 +173,10 @@ app.post('/api/sql', (req, res) => {
 });
 
 app.listen(port, () => {
-    
+    const lifecycleEvent = process.env.npm_lifecycle_event;
+    if(lifecycleEvent === 'dev'){
+        dev = true;
+    }
     console.log('Boot sequence initiated...\n');
     if(!dev){
     // Generators for fake logs
@@ -240,6 +243,7 @@ app.listen(port, () => {
       }, 20);
     }
 }else{
+    
     //exec(`start http://localhost:${port}`);
 
 }
