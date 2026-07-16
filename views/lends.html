@@ -157,6 +157,8 @@
                             }
                         } else {
                             messageDiv.innerHTML = "<span class='text-warning'>Book not found.</span>";
+                            playSound("error");
+
                         }
                     });
             }
@@ -205,6 +207,8 @@
                 This student already borrowed "${borrowedBook.title || "a book (name not found)"}". 
                 They must return it before borrowing another.
             </span>`;
+                                            playSound("error");
+
                                         }
                                     });
                             }
@@ -226,6 +230,8 @@
                                             actionBtn.focus();
                                         } else {
                                             messageDiv.innerHTML = "<span class='text-warning'>Student not found.</span>";
+                                            playSound("error");
+
                                         }
                                     });
                             }
@@ -263,6 +269,8 @@
                             admissionInput.focus();
                         } else {
                             messageDiv.innerHTML = "<span class='text-warning'>Student not found by class/number.</span>";
+                            playSound("error");
+
                         }
                     });
             }
@@ -299,6 +307,8 @@
                     })
                     .then(() => {
                         messageDiv.innerHTML = "<span class='text-success'>Book returned successfully!</span>";
+                        playSound("success");
+
                         resetForm();
                     });
 
@@ -318,6 +328,8 @@
                     })
                     .then(() => {
                         messageDiv.innerHTML = "<span class='text-success'>Book lent successfully!</span>";
+                        playSound("success");
+
                         resetForm();
                     });
             }

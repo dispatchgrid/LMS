@@ -11,7 +11,6 @@
 </head>
 
 <body class="bg-dark text-light">
-    <!-- Navbar -->
     <nav class="navbar navbar-dark bg-secondary" id="navbar">
         <div class="container-fluid">
             <span class="navbar-brand mb-0 h1" id="navbarTxt">Library Management Dashboard</span>
@@ -92,6 +91,7 @@
         let recognizing = false;
         let approvedTitle = "";
         let approvedAuthor = "";
+        let recognizedText = "";
 
         const queryUrl = "/api/sql";
         const startBtn = document.getElementById("startBtn");
@@ -122,13 +122,21 @@
                     .then(rows => {
                         if (!rows || rows.length === 0) {
                             preview.textContent = "The book number does not exist in the database";
+                            playSound("error");
                             document.getElementById("book_no").value = "";
                             document.getElementById("book_no").focus();
                         } else {
                             preview.textContent = "";
                             e.preventDefault();
-                            if (rows[0].title != "") {
+                            if ((rows[0].title == null) || (rows[0].title == "")) {
+                                document.getElementById("lang").focus();
+                                document.getElementById("lang").select();
+                            } else {
+                                playSound("error");
                                 const duplicateAllow = confirm("You want to continue?");
+
+                                console.log(rows[0].title)
+
                                 if (!duplicateAllow) {
                                     document.getElementById("book_no").value = "";
                                     document.getElementById("book_no").focus();
@@ -136,9 +144,6 @@
                                     document.getElementById("lang").focus();
                                     document.getElementById("lang").select();
                                 }
-                            } else {
-                                document.getElementById("lang").focus();
-                                document.getElementById("lang").select();
                             }
 
                         }
@@ -152,7 +157,16 @@
         document.getElementById("lang").addEventListener("keydown", e => {
             if (e.key === "Enter") {
                 e.preventDefault();
-                startBtn.focus();
+
+                if (document.getElementById("lang").value == "e" || document.getElementById("lang").value == "s") {
+
+                    startBtn.focus();
+                } else {
+                    document.getElementById("lang").value = "s";
+                    document.getElementById("lang").select();
+                    playSound("error");
+
+                }
             }
         });
         document.getElementById("price").addEventListener("keydown", e => {
@@ -188,15 +202,22 @@
 
                 let transcript = "";
                 let final = "";
+                let intertrim = "";
                 for (let i = event.resultIndex; i < event.results.length; i++) {
                     transcript += event.results[i][0].transcript;
                     if (event.results[i].isFinal) {
                         final += event.results[i][0].transcript;
+                        recognizedText += event.results[i][0].transcript;
+
+                    } else {
+                        intertrim += event.results[i][0].transcript;
+
                     }
                 }
                 // Prepend saved text from previous sessions
 
-                dictationBox.value = dictationBox.value + final;
+                //dictationBox.value = dictationBox.value + final;
+                dictationBox.value = recognizedText + intertrim;
             };
 
             recognition.onerror = (event) => {
@@ -214,24 +235,29 @@
             if (!recognizing) {
                 // Save existing text before starting new session
                 recognition.start();
+                playSound("toggle_on");
+
                 recognizing = true;
+                recognizedText = "";
+                dictationBox.value = "";
                 startBtn.textContent = "Stop Recognition";
                 startBtn.classList.remove("btn-primary");
                 startBtn.classList.add("btn-danger");
             } else {
                 recognition.stop();
+                playSound("toggle_off");
+
                 recognizing = false;
                 startBtn.textContent = "Start Recognition";
                 startBtn.classList.remove("btn-danger");
                 startBtn.classList.add("btn-primary");
                 // Save the final text after stopping
-                processCapturedText(dictationBox.value, langInput);
+                processCapturedText(recognizedText, langInput);
             }
         });
 
         function processCapturedText(text, lang) {
-            //const trimmed = text.trim();
-            const trimmed = "Oliver Twist by Charles DIckes"
+            const trimmed = text.trim();
             let valid = false;
             /*if (lang === "e") {
                 valid = /book/i.test(trimmed) && !/^book$/i.test(trimmed);
@@ -241,6 +267,8 @@
             if (trimmed != "") {
                 valid = true;
             }
+            playSound("error");
+
 
 
             if (!valid) {
@@ -298,6 +326,7 @@
 
         function retryEntry() {
             dictationBox.value = "";
+            recognizedText = "";
             preview.textContent = "Please retry voice capture.";
             startBtn.focus();
         }
@@ -352,6 +381,8 @@
                 .then(res => res.text())
                 .then(msg => {
                     console.log("DB updated:", msg);
+                    playSound("success");
+
                     addUpdatedBook(bookNo);
                     loadRecentEntries();
                 })
@@ -438,6 +469,7 @@
             document.getElementById("book_no").value = "";
             document.getElementById("price").value = "";
             dictationBox.value = "";
+            recognizedText = "";
             preview.textContent = "";
             document.getElementById("book_no").focus();
         }

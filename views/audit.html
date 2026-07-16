@@ -107,7 +107,7 @@
                         const loggedTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
                         messageDiv.innerHTML = `<span class="text-success">Book ${book_no} logged at ${loggedTime}</span>`;
-
+                        playSound("success");
                         const row = document.createElement("tr");
                         row.innerHTML = `
             <td>${book.book_no}</td>
@@ -119,6 +119,8 @@
                         scanTable.prepend(row);
                     } else {
                         messageDiv.innerHTML = "<span class='text-warning'>Book not found.</span>";
+                        playSound("error");
+
                     }
 
                     bookInput.value = "";

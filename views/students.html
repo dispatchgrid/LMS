@@ -59,7 +59,8 @@
                 <div class="card bg-secondary text-light p-3">
                     <h4 class="mb-3">Student Records</h4>
                     <div class="input-group mb-3">
-                        <input type="text" id="searchInput" class="form-control" placeholder="Search by ID, Name or Class + Class number">
+                        <input type="text" id="searchInput" class="form-control"
+                            placeholder="Search by ID, Name or Class + Class number">
                         <button class="btn btn-primary" onclick="searchStudent()">Search</button>
                     </div>
                     <div style="max-height:60vh; overflow-y:auto;">
@@ -87,7 +88,7 @@
 
     <script>
         const QUERY_LIMIT = 20; // Change this value to adjust row limit
-    
+
         function loadStudents() {
             const sql = `SELECT * FROM Students LIMIT ${QUERY_LIMIT}`;
             fetch('/api/sql', {
@@ -95,15 +96,15 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ query: sql })
             })
-            .then(res => res.json())
-            .then(data => renderTable(data));
+                .then(res => res.json())
+                .then(data => renderTable(data));
         }
-    
+
         document.querySelectorAll('#studentForm input').forEach((input, index, inputs) => {
             input.addEventListener('keydown', function (e) {
                 if (e.key === 'Enter') {
                     e.preventDefault(); // Prevent form submission
-    
+
                     if (index < inputs.length - 1) {
                         inputs[index + 1].focus();
                     } else {
@@ -112,7 +113,7 @@
                 }
             });
         });
-    
+
         // Save student (insert or update)
         document.getElementById("studentForm").addEventListener("submit", function (e) {
             e.preventDefault();
@@ -120,24 +121,26 @@
             const studentClass = document.getElementById("class").value;
             const name = document.getElementById("name").value;
             const classNumber = document.getElementById("class_number").value;
-    
+
             const sql = `
                 INSERT INTO Students (admission_no, class, class_number, student_name)
                 VALUES (${admission_no}, '${studentClass}', ${classNumber}, '${name}')
                 ON DUPLICATE KEY UPDATE class='${studentClass}', class_number=${classNumber}, student_name='${name}'
             `;
-    
+
             fetch('/api/sql', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ query: sql })
             })
-            .then(() => loadStudents());
-    
+                .then(() => loadStudents());
+
             this.reset();
             document.getElementById("admission_no").focus();
+            playSound("success");
+
         });
-    
+
         // Delete student
         function deleteStudent(id) {
             const sql = `DELETE FROM Students WHERE admission_no=${id}`;
@@ -146,14 +149,16 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ query: sql })
             })
-            .then(() => loadStudents());
+                .then(() => loadStudents());
+            playSound("success");
+
         }
-    
+
         // Search student (also limited)
         function searchStudent() {
             let query = document.getElementById("searchInput").value.trim();
             query = query.replace(/[-\s]+/g, "");
-    
+
             const match = query.match(/^([A-Za-z0-9]+)(\d+)$/);
             if (match) {
                 const className = match[1];
@@ -168,11 +173,11 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ query: sql })
                 })
-                .then(res => res.json())
-                .then(data => renderTable(data));
+                    .then(res => res.json())
+                    .then(data => renderTable(data));
                 return;
             }
-    
+
             const sql = `
                 SELECT * FROM Students
                 WHERE (admission_no LIKE '%${query}%') OR (student_name LIKE '%${query}%')
@@ -183,10 +188,10 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ query: sql })
             })
-            .then(res => res.json())
-            .then(data => renderTable(data));
+                .then(res => res.json())
+                .then(data => renderTable(data));
         }
-    
+
         // Render table
         function renderTable(students) {
             const tbody = document.getElementById("studentTable");
@@ -206,7 +211,7 @@
                 `;
             });
         }
-    
+
         // Edit student (prefill form)
         function editStudent(id) {
             const sql = `SELECT * FROM Students WHERE admission_no=${id} LIMIT 1`;
@@ -215,22 +220,22 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ query: sql })
             })
-            .then(res => res.json())
-            .then(data => {
-                if (data.length > 0) {
-                    const s = data[0];
-                    document.getElementById("admission_no").value = s.admission_no;
-                    document.getElementById("class").value = s.class;
-                    document.getElementById("class_number").value = s.class_number;
-                    document.getElementById("name").value = s.student_name;
-                }
-            });
+                .then(res => res.json())
+                .then(data => {
+                    if (data.length > 0) {
+                        const s = data[0];
+                        document.getElementById("admission_no").value = s.admission_no;
+                        document.getElementById("class").value = s.class;
+                        document.getElementById("class_number").value = s.class_number;
+                        document.getElementById("name").value = s.student_name;
+                    }
+                });
         }
-    
+
         // Initial load
         loadStudents();
     </script>
-    
+
 </body>
 
 </html>

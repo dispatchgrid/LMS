@@ -136,6 +136,8 @@
                 .then(() => loadBooks());
 
             this.reset();
+            playSound("success");
+
         });
 
         // Delete book
@@ -147,6 +149,8 @@
                 body: JSON.stringify({ query: sql })
             })
                 .then(() => loadBooks());
+            playSound("success");
+
         }
 
         // Search book (also limited)
@@ -174,6 +178,7 @@
             })
                 .then(res => res.json())
                 .then(data => renderTable(data));
+                
         }
 
 

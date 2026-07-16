@@ -68,23 +68,23 @@
     </div>
 
     <script>
-        const QUERY_LIMIT = 20; 
-    
+        const QUERY_LIMIT = 20;
+
         let currentSortCol = -1;
         let currentSortDir = "asc";
-    
+
         function loadData() {
             const search = document.getElementById("searchInput").value;
             const filter = document.getElementById("filter").value;
-    
+
             let baseSql = `
                 FROM Lends l
                 JOIN Books b ON l.book_no = b.book_no
                 JOIN Students s ON l.admission_no = s.admission_no
             `;
-    
+
             const conditions = [];
-    
+
             if (filter === "borrowed") {
                 conditions.push("l.return_date IS NULL AND DATEDIFF(CURDATE(), l.lend_date) <= 7");
             } else if (filter === "returned") {
@@ -92,11 +92,11 @@
             } else if (filter === "overdue") {
                 conditions.push("l.return_date IS NULL AND DATEDIFF(CURDATE(), l.lend_date) > 7");
             }
-    
+
             if (search) {
                 const normalized = search.replace(/[-\s]+/g, "");
                 const match = normalized.match(/^([A-Za-z0-9]+)(\d+)$/);
-    
+
                 if (match) {
                     const className = match[1];
                     const classNumber = match[2];
@@ -109,12 +109,12 @@
                     )`);
                 }
             }
-    
+
             let whereClause = "";
             if (conditions.length > 0) {
                 whereClause = " WHERE " + conditions.join(" AND ");
             }
-    
+
             // Query for table data with LIMIT
             let sql = `
                 SELECT 
@@ -136,7 +136,7 @@
                 ORDER BY l.lend_date DESC
                 LIMIT ${QUERY_LIMIT}
             `;
-    
+
             // Query for stats (counts only)
             let statsSql = `
                 SELECT 
@@ -147,35 +147,37 @@
                 ${baseSql}
                 ${whereClause}
             `;
-    
+
             Promise.all([
                 fetch('/api/sql', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ query: sql })
                 }).then(res => res.json()),
-    
+
                 fetch('/api/sql', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ query: statsSql })
                 }).then(res => res.json())
             ])
-            .then(([data, stats]) => {
-                renderTable(data);
-                renderStats(stats[0]); // stats returns one row
-            });
+                .then(([data, stats]) => {
+                    renderTable(data);
+                    renderStats(stats[0]); // stats returns one row
+                });
         }
-    
+
         function renderTable(data) {
             const tbody = document.getElementById("dataBody");
             tbody.innerHTML = "";
-    
+
             if (data.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted py-4">No records found</td></tr>`;
+                playSound("error");
+
                 return;
             }
-    
+
             data.forEach(row => {
                 let statusBadge;
                 if (row.status === 'Returned') {
@@ -185,7 +187,7 @@
                 } else {
                     statusBadge = '<span class="badge bg-warning text-dark">Borrowed</span>';
                 }
-    
+
                 tbody.innerHTML += `
                     <tr class="${row.status === 'Overdue' ? 'table-danger' : ''}">
                         <td>${row.book_no}</td>
@@ -200,7 +202,7 @@
                 `;
             });
         }
-    
+
         function renderStats(stats) {
             const statsRow = document.getElementById("statsRow");
             statsRow.innerHTML = `
@@ -230,36 +232,36 @@
                 </div>
             `;
         }
-    
+
         // Sorting function remains unchanged
         function sortTable(colIndex) {
             const table = document.getElementById("dataTable");
             const tbody = table.querySelector("tbody");
             const rows = Array.from(tbody.querySelectorAll("tr"));
-    
+
             if (currentSortCol === colIndex) {
                 currentSortDir = currentSortDir === "asc" ? "desc" : "asc";
             } else {
                 currentSortCol = colIndex;
                 currentSortDir = "asc";
             }
-    
+
             rows.sort((a, b) => {
                 const aCell = a.cells[colIndex];
                 const bCell = b.cells[colIndex];
-    
+
                 let aVal = aCell.textContent.trim();
                 let bVal = bCell.textContent.trim();
-    
+
                 if (aVal === "-") aVal = "";
                 if (bVal === "-") bVal = "";
-    
+
                 const aNum = parseFloat(aVal);
                 const bNum = parseFloat(bVal);
                 if (!isNaN(aNum) && !isNaN(bNum)) {
                     return currentSortDir === "asc" ? aNum - bNum : bNum - aNum;
                 }
-    
+
                 if (colIndex === 5 || colIndex === 6) {
                     const aDate = new Date(aVal);
                     const bDate = new Date(bVal);
@@ -267,33 +269,33 @@
                         return currentSortDir === "asc" ? aDate - bDate : bDate - aDate;
                     }
                 }
-    
+
                 if (aVal < bVal) return currentSortDir === "asc" ? -1 : 1;
                 if (aVal > bVal) return currentSortDir === "asc" ? 1 : -1;
                 return 0;
             });
-    
+
             rows.forEach(row => tbody.appendChild(row));
-    
+
             const headers = table.querySelectorAll("thead th");
             headers.forEach((th, i) => {
-                const arrow = i === colIndex 
-                    ? (currentSortDir === "asc" ? " ↑" : " ↓") 
+                const arrow = i === colIndex
+                    ? (currentSortDir === "asc" ? " ↑" : " ↓")
                     : " ↕";
                 th.textContent = th.textContent.replace(/ [↑↓↕]$/, "") + arrow;
             });
         }
-    
+
         function formatDate(dateString) {
             if (!dateString) return "-";
             const date = new Date(dateString);
             return date.toISOString().split('T')[0];
         }
-    
+
         // Initial load
         loadData();
     </script>
-    
+
 
 </body>
 

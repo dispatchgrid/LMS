@@ -556,6 +556,7 @@ function startRec() {
         console.log('[REC] Final:', JSON.stringify(transcript), '| Full so far:', JSON.stringify(fullText));
       } else {
         im += ev.results[i][0].transcript;
+        console.log("Transcript is:"+ev.results[i][0].transcript);
       }
     }
     // Update interim text for display and fallback

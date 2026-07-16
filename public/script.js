@@ -22,10 +22,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Preload multiple sounds
   const sounds = {
-    toggle_on: new Audio('/assets/toggle_on.wav'),
-    toggle_off: new Audio('/assets/toggle_off.wav'),
-    error: new Audio('/assets/error.wav'),
-    success: new Audio('/assets/success.wav')
+    toggle_on: new Audio('/assets/transition_up.wav'),
+    toggle_off: new Audio('/assets/transition_down.wav'),
+    error: new Audio('/assets/caution.wav'),
+    success: new Audio('/assets/button.wav')
   };
   
   // Ensure all are preloaded

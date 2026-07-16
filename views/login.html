@@ -46,23 +46,33 @@
                     if (response.status === 200) {
                         document.getElementById("message").innerHTML =
                             "<span class='text-success'>Login successful!</span>";
+                        playSound("success");
+
                         window.location.href = "/dashboard";
                     } else if (response.status === 401) {
                         document.getElementById("message").innerHTML =
                             "<span class='text-danger'>Invalid credentials</span>";
+                        playSound("error");
+
                     } else if (response.status === 403) {
                         response.text().then(msg => {
                             document.getElementById("message").innerHTML =
                                 "<span class='text-danger'>" + msg + "</span>";
+                            playSound("error");
+
                         });
                     } else if (response.status === 500) {
                         response.text().then(msg => {
                             document.getElementById("message").innerHTML =
                                 "<span class='text-danger'>" + msg + "</span>";
+                            playSound("error");
+
                         });
                     } else {
                         document.getElementById("message").innerHTML =
                             "<span class='text-danger'>Unexpected error</span>";
+                        playSound("error");
+
                     }
                 })
                 .catch(err => {
@@ -70,6 +80,8 @@
                     alert("Internet connection lost or server unreachable.");
                     document.getElementById("message").innerHTML =
                         "<span class='text-danger'>Network error</span>";
+                    playSound("error");
+
                 });
         });
 
