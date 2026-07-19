@@ -1,43 +1,23 @@
 body {
-    background-color: #f0f0f0 !important;
-    /* light grey background */
-    color:#ffffff !important;
-    /* black text */
-    font-family: Arial, sans-serif !important;
+    font-family: Arial, sans-serif;
 }
 
 :root {
-    --bs-primary: #2F2FE4;   /* your theme's bright blue */
-    --bs-danger: #E63946;    /* your theme's red */
-    --bs-success: #06D6A0;   /* your theme's green */
+    --bs-primary: #2F2FE4; 
+    --bs-danger: #E63946;
+    --bs-success: #06D6A0;
   }
   
-  .btn-primary:hover { background-color: #4A4AE8; }
+.btn-primary:hover { background-color: #4A4AE8; }
 .btn-danger:hover { background-color: #B71C1C; }
 .btn-success:hover { background-color: #04B383; }
 
 
-.card {
-    background-color: #ffffff !important;
-    /* white cards */
-  
-    /* black text */
-}
-
-.table tr {
-    background-color: #2A2A4A  !important;
-    /* white table */
- 
-    /* black text */
-}
-
-td {
+/*td {
     background-color: #2A2A4A !important;
-    /* white table */
     color: #ffffff !important;
-    /* black text */
 }
-
+*/
 #tbody {
     background-color: #12122B  !important;
     /* white table */
