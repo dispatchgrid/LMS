@@ -16,7 +16,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     if (navbarTxt) {
-        navbarTxt.innerHTML = `<a href="/dashboard" class="text-decoration-none text-light">Library Management System </a>`;
+        navbarTxt.innerHTML = `<a class = "navbar-brand" href="/dashboard">Library Management System</a>`;
     }
 });
 
@@ -66,7 +66,7 @@ if (navbar) {
         btn.id = id;
         btn.type = "button";
         btn.className = offClass;
-        btn.innerHTML = '<i class="fa ' + iconClass + '"></i>' + (extraHtml || "");
+        btn.innerHTML = '<i class="bi ' + iconClass + '"></i>' + (extraHtml || "");
         btn.title = title;
         return btn;
     }
@@ -81,7 +81,7 @@ if (navbar) {
     const sinhalaBtn = createIconButton(
         "voiceBtnSinhala",
         MIC_OFF_CLASS,
-        "fa-microphone",
+        "bi-mic-fill",
         "Voice Input (si-LK)",
         '&nbsp;<sup>අ</sup>'
     );
@@ -89,7 +89,7 @@ if (navbar) {
 
     function setupRecognition(btn, lang) {
         const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-        recognition.continuous = false;
+        recognition.continuous = true;
         recognition.interimResults = true;
         recognition.lang = lang;
 
@@ -101,7 +101,7 @@ if (navbar) {
 
         btn.addEventListener("click", () => {
             if (!activeInput) {
-                alert("Click a text field first!");
+                showToast('danger', 'Click a textfield first')
                 return;
             }
             if (!listening) {
@@ -109,10 +109,12 @@ if (navbar) {
                 listening = true;
                 btn.className = MIC_ON_CLASS;
                 playSound("toggle_on");
+                showToast('warning', 'Voice recognition started')
             } else {
                 recognition.stop();
                 listening = false;
                 btn.className = MIC_OFF_CLASS;
+                showToast('info', 'Voice recognition ended')
                 playSound("toggle_off");
             }
         });
@@ -140,7 +142,7 @@ if (navbar) {
     const translitBtn = createIconButton(
         "voiceBtnTranslit",
         TRANSLIT_OFF_CLASS,
-        "fa-language",
+        "bi-translate",
         "Toggle Sinhala Transliteration",
         '&nbsp;<sup>අ</sup>'
     );
@@ -162,10 +164,13 @@ if (navbar) {
             document.addEventListener("input", handleTranslitInput);
             document.addEventListener("keydown", handleTranslitKeydown, true);
             playSound("toggle_on");
+            showToast('info', 'Transliteration started')
+
         } else {
             document.removeEventListener("input", handleTranslitInput);
             document.removeEventListener("keydown", handleTranslitKeydown, true);
             closeDropdown();
+            showToast('info', 'Transliteration ended')
             playSound("toggle_off");
         }
     });
@@ -283,7 +288,6 @@ if (navbar) {
             el.classList.toggle("active", i === activeIndex);
         });
     }
-
     function selectOption(replacement) {
         const el = activeInput;
         if (!el) return;
@@ -318,3 +322,58 @@ if (navbar) {
         activeIndex = -1;
     }
 }
+
+function showToast(type, message, duration = 5000) {
+    // Ensure toast stack container exists
+    let stack = document.getElementById('toastStack');
+    if (!stack) {
+      stack = document.createElement('div');
+      stack.id = 'toastStack';
+      stack.className = 'position-fixed top-0 end-0 mt-5 p-3 d-flex flex-column align-items-end';
+      stack.style.zIndex = '1050';
+      document.body.appendChild(stack);
+    }
+
+    // Icons for each type
+    const icons = {
+      success: '<i class="bi bi-check-circle-fill text-success me-2"></i>',
+      danger:  '<i class="bi bi-x-circle-fill text-danger me-2"></i>',
+      warning: '<i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>',
+      info:    '<i class="bi bi-info-circle-fill text-info me-2"></i>'
+    };
+
+    // Shaded background classes per type
+    const shadeClasses = {
+      success: 'bg-success bg-opacity-25',
+      danger:  'bg-danger bg-opacity-50',
+      warning: 'bg-warning bg-opacity-25',
+      info:    'bg-info bg-opacity-25'
+    };
+
+    // Create toast element
+    const toastEl = document.createElement('div');
+    toastEl.className = `toast align-items-center border-0 mb-2 ${shadeClasses[type]}`;
+    toastEl.role = "alert";
+    toastEl.ariaLive = "assertive";
+    toastEl.ariaAtomic = "true";
+    toastEl.innerHTML = `
+      <div class="d-flex">
+        <div class="toast-body">
+          ${icons[type]} ${message}
+        </div>
+      </div>
+    `;
+    toastEl.addEventListener("click",()=>{
+        toastEl.remove();
+    })
+
+    // Append to stack
+    stack.appendChild(toastEl);
+
+    // Initialize Bootstrap toast
+    const bsToast = new bootstrap.Toast(toastEl, { delay: duration });
+    bsToast.show();
+
+    // Remove after hidden
+    toastEl.addEventListener('hidden.bs.toast', () => toastEl.remove());
+  }

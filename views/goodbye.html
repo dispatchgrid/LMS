@@ -1,85 +1,107 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-bs-theme="dark">
+
 <head>
-  <meta charset="UTF-8">
-  <title>Goodbye</title>
-  <style>
-    body {
-      margin: 0;
-      height: 100vh;
-      background: linear-gradient(to bottom, #2F2FE4, #1C1CBF, #12122B);
-      color: #f8f9fa;
-      font-family: 'Segoe UI', Arial, sans-serif;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      text-align: center;
-      overflow: hidden;
-    }
+    <meta charset="UTF-8">
+    <title>Goodbye</title>
+    <style>
+        body {
+            margin: 0;
+            height: 100vh;
+            background: linear-gradient(to bottom, #2F2FE4, #1C1CBF, #12122B);
+            color: #f8f9fa;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            overflow: hidden;
+        }
 
-    .message {
-      background: rgba(0,0,0,0.4);
-      padding: 40px;
-      border-radius: 12px;
-      box-shadow: 0 0 20px rgba(0,0,0,0.6);
-      max-width: 600px;
-    }
+        .message {
+            background: rgba(0, 0, 0, 0.4);
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.6);
+            max-width: 600px;
+        }
 
-    h1 {
-      font-size: 2.5rem;
-      margin-bottom: 20px;
-      color: #E0E0F8;
-      animation: glow 2s ease-in-out infinite alternate;
-    }
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            color: #E0E0F8;
+            animation: glow 2s ease-in-out infinite alternate;
+        }
 
-    p {
-      font-size: 1.2rem;
-      margin-bottom: 10px;
-      color: #C5C6E0;
-      animation: fadeIn 3s ease forwards;
-    }
+        p {
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+            color: #C5C6E0;
+            animation: fadeIn 3s ease forwards;
+        }
 
-    .footer {
-      margin-top: 20px;
-      font-size: 0.9rem;
-      color: #A0A0C0;
-      opacity: 0.8;
-    }
+        .footer {
+            margin-top: 20px;
+            font-size: 0.9rem;
+            color: #A0A0C0;
+            opacity: 0.8;
+        }
 
-    /* Animations */
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
+        /* Animations */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
 
-    @keyframes floatUpDown {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-15px); }
-    }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
 
-    @keyframes glow {
-      from { text-shadow: 0 0 10px #2F2FE4, 0 0 20px #4A4AE8; }
-      to { text-shadow: 0 0 20px #1C1CBF, 0 0 40px #2A2A5A; }
-    }
-  </style>
+        @keyframes floatUpDown {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-15px);
+            }
+        }
+
+        @keyframes glow {
+            from {
+                text-shadow: 0 0 10px #2F2FE4, 0 0 20px #4A4AE8;
+            }
+
+            to {
+                text-shadow: 0 0 20px #1C1CBF, 0 0 40px #2A2A5A;
+            }
+        }
+    </style>
 </head>
+
 <body>
 
-  <div class="message">
-    <h1>Goodbye for Now</h1>
-    <p>Thank you for using the Library Management System.</p>
-    <p>The server will shut down shortly, but this farewell page will remain open.</p>
-    <div class="footer"> © 2026 - Koha LMS<br>
-        Installed and Monitored By University of Kaleniya</div>
-  </div>
+    <div class="message">
+        <h1>Goodbye for Now</h1>
+        <p>Thank you for using the Library Management System.</p>
+        <p>The server will shut down shortly, but this farewell page will remain open.</p>
+        <div class="footer"> © 2026 - Koha LMS<br>
+            Installed and Monitored By University of Kaleniya</div>
+    </div>
 
-  <script>
-    // Call the quit endpoint immediately
-    fetch("http://localhost:3000/quit", { method: "GET" })
-      .then(res => res.text())
-      .then(msg => console.log("Server response:", msg))
-      .catch(err => console.error("Error quitting server:", err));
-  </script>
+    <script>
+        // Call the quit endpoint immediately
+        fetch("http://localhost:3000/quit", { method: "GET" })
+            .then(res => res.text())
+            .then(msg => console.log("Server response:", msg))
+            .catch(err => console.error("Error quitting server:", err));
+    </script>
 
 </body>
+
 </html>

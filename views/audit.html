@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-bs-theme="dark">
 
 <head>
     <meta charset="UTF-8">
@@ -8,12 +8,13 @@
     <link rel="stylesheet" href="/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
     <script src="/script.js" defer></script>
 </head>
 
-<body class="bg-dark text-light">
+<body class=" ">
     <!-- Navbar -->
-    <nav class="navbar navbar-dark bg-secondary" id="navbar">
+    <nav class="navbar " id="navbar">
         <div class="container-fluid">
             <span class="navbar-brand mb-0 h1" id="navbarTxt">Error</span>
             <div>
@@ -26,7 +27,7 @@
 
 
     <div class="container my-4">
-        <div class="card bg-secondary p-4">
+        <div class="card p-4">
             <h3 class="mb-3">Audit Scanning</h3>
             <form id="scanForm">
                 <label for="book_no" class="form-label">Scan Book Barcode</label>
@@ -93,7 +94,7 @@
                         const now = new Date();
                         const loggedTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-                        messageDiv.innerHTML = `<span class="text-success">Book ${book_no} logged at ${loggedTime}</span>`;
+                        showToast('success',`Book ${book_no} logged at ${loggedTime}`);
                         playSound("success");
                         const row = document.createElement("tr");
                         row.innerHTML = `
@@ -105,7 +106,7 @@
           `;
                         scanTable.prepend(row);
                     } else {
-                        messageDiv.innerHTML = "<span class='text-warning'>Book not found.</span>";
+                        showToast('danger',`Book not found`);
                         playSound("error");
 
                     }
