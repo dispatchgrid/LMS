@@ -1,791 +1,613 @@
 <!DOCTYPE html>
 <html lang="en" data-bs-theme="dark">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Library Book Entry - FIXED</title>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-<style>
-  .status-bar {
-    border-radius: .375rem; padding: .55rem .85rem; font-weight: 600; font-size: .88rem;
-    display: flex; align-items: center; gap: .5rem; transition: all .3s;
-  }
-  .sb-idle { background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1); color: var(--bs-secondary-color); }
-  .sb-rec  { background: rgba(220,53,69,.08); border: 1px solid rgba(220,53,69,.25); color: #f87171; animation: sPulse 1.5s ease-in-out infinite; }
-  .sb-ok   { background: rgba(25,135,84,.08); border: 1px solid rgba(25,135,84,.25); color: #4ade80; }
-  .sb-fail { background: rgba(255,193,7,.08); border: 1px solid rgba(255,193,7,.25); color: #fbbf24; }
-  @keyframes sPulse { 0%,100%{box-shadow:0 0 0 0 rgba(248,113,113,.12)} 50%{box-shadow:0 0 0 6px rgba(248,113,113,0)} }
+    <meta charset="UTF-8">
+    <title>Voice Book Entry</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
 
-  .tbox {
-    background: var(--bs-body-bg); border: 1px solid var(--bs-border-color); border-radius: .375rem;
-    padding: .6rem .8rem; min-height: 40px; font-style: italic; color: var(--bs-secondary-color);
-    font-size: .88rem; transition: all .3s; opacity: 0; transform: translateY(-4px);
-  }
-  .tbox.vis { opacity: 1; transform: translateY(0); }
-  .tbox.fin { color: var(--bs-body-color); font-style: normal; border-color: #4ade80; }
-
-  .pprev { background: rgba(255,255,255,.03); border: 1px solid var(--bs-border-color); border-radius: .375rem; padding: .65rem .85rem; display: none; }
-  .pprev.show { display: block; }
-  .pprev .pl { font-weight: 700; color: var(--bs-warning); min-width: 55px; font-size: .88rem; }
-  .pprev .pv { color: var(--bs-body-color); font-size: .88rem; }
-
-  .rlt { font-size: .62rem !important; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; }
-  
-  /* Debug panel */
-  .debug-panel {
-    background: rgba(220,53,69,.05); border: 1px dashed rgba(220,53,69,.3); border-radius: .375rem;
-    padding: .5rem; margin-top: .5rem; font-family: monospace; font-size: .75rem;
-    color: #f87171; max-height: 150px; overflow-y: auto;
-  }
-</style>
+    <script src="/script.js" defer></script>
+    <style>
+        #liveDictationBox {
+            transition: max-height 0.3s ease, opacity 0.25s ease, margin 0.3s ease, padding 0.3s ease;
+            overflow: hidden;
+        }
+        #liveDictationBox.collapsed {
+            max-height: 0 !important;
+            opacity: 0;
+            margin-top: 0 !important;
+            margin-bottom: 0 !important;
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
+        }
+        #liveDictationBox.expanded {
+            max-height: 100px;
+            opacity: 1;
+        }
+        #liveDictationLabel {
+            transition: opacity 0.2s ease;
+        }
+        #liveDictationLabel.label-hidden {
+            opacity: 0;
+            height: 0;
+            margin: 0;
+            overflow: hidden;
+        }
+        #liveDictationLabel.label-visible {
+            opacity: 1;
+            height: auto;
+        }
+        .pulse-ring {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #dc3545;
+            animation: pulseRing 1s ease-out infinite;
+            margin-right: 6px;
+            vertical-align: middle;
+        }
+        @keyframes pulseRing {
+            0% { box-shadow: 0 0 0 0 rgba(220,53,69,0.6); }
+            100% { box-shadow: 0 0 0 12px rgba(220,53,69,0); }
+        }
+    </style>
 </head>
-<body>
-<div class="position-fixed top-0 end-0 p-3" style="z-index:9999"><div id="toastBox"></div></div>
 
-<div class="container" style="max-width:850px; padding-top:1.5rem; padding-bottom:2rem;">
-
-  <div class="text-center mb-4">
-    <h3 class="mb-1">Library <span class="text-warning">Book Entry</span> <small class="badge bg-success" style="font-size:.6rem">FIXED</small></h3>
-    <small class="text-secondary">Enter language + ID, speak, set price &amp; category. Enter to advance, Escape to cancel.</small>
-  </div>
-
-  <!-- Step 1: Language + Book ID -->
-  <div class="card mb-2">
-    <div class="card-header py-2 d-flex align-items-center gap-2">
-      <span class="badge text-bg-warning" style="font-size:.65rem">1</span>
-      <span class="fw-semibold" style="font-size:.95rem">Language &amp; Book ID</span>
-    </div>
-    <div class="card-body py-3">
-      <div class="row g-3 align-items-end">
-        <div class="col-auto" style="width:120px">
-          <label for="langIn" class="form-label small text-secondary mb-1">Language</label>
-          <div class="d-flex align-items-center gap-2">
-            <input type="text" class="form-control text-center fw-bold" id="langIn" value="s" maxlength="1" style="width:44px;font-size:1.1rem">
-            <span class="badge text-bg-warning" id="langBadge" style="font-size:.78rem">සිංහල</span>
-          </div>
-          <div class="form-text" style="font-size:.7rem">s,e</div>
+<body class=" ">
+    <nav class="navbar  " id="navbar">
+        <div class="container-fluid">
+            <span class="navbar-brand mb-0 h1" id="navbarTxt">Library Management Dashboard</span>
+            <div>
+                <div id="navbarContent"></div>
+            </div>
         </div>
-        <div class="col">
-          <label for="idIn" class="form-label small text-secondary mb-1">Book ID</label>
-          <input type="text" class="form-control" id="idIn" placeholder="e.g. BK-00142">
-          <div class="form-text" style="font-size:.7rem">Must be unique · Press Enter to proceed</div>
+    </nav>
+
+    <div class="container-fluid my-4">
+        <div class="row">
+
+            <!-- Left Side: Entry Form -->
+            <div class="col-md-6">
+                <div class="card   p-3">
+                    <h4 class="mb-3">Add / Edit Book</h4>
+                    <form id="bookEntryForm">
+                        <div class="mb-3">
+                            <label for="book_no" class="form-label">Book Number</label>
+                            <input type="number" id="book_no" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="lang" class="form-label">Language (s = Sinhala, e = English)</label>
+                            <input type="text" id="lang" class="form-control" maxlength="1" value="s">
+                        </div>
+
+                        <!-- Label with pulse dot — outside the overflow-hidden box -->
+                        <div id="liveDictationLabel" class="form-label label-hidden">
+                            <span class="pulse-ring"></span>Listening...
+                        </div>
+
+                        <!-- Transient live recognition input — overflow hidden for collapse animation -->
+                        <div id="liveDictationBox" class="mb-3 collapsed">
+                            <input type="text" id="liveDictation" class="form-control" readonly
+                                   style="background:rgba(220,53,69,0.08); border-color:rgba(220,53,69,0.3);">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="titleField" class="form-label">Title</label>
+                            <input type="text" id="titleField" class="form-control" placeholder="Title" disabled>
+                        </div>
+                        <div class="mb-3">
+                            <label for="authorField" class="form-label">Author</label>
+                            <input type="text" id="authorField" class="form-control" placeholder="Author" disabled>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="approveField" class="form-label">Approve? (1 = Yes, 0 = No)</label>
+                            <input type="text" id="approveField" class="form-control" value="1" disabled
+                                   style="max-width:120px;">
+                        </div>
+
+                        <button type="button" class="btn btn-primary w-100 mb-3" id="startBtn">Start
+                            Recognition</button>
+
+                        <div id="preview" class="mb-3"></div>
+
+                        <div class="mb-3">
+                            <label for="price" class="form-label">Price</label>
+                            <input type="number" id="price" class="form-control" min="0">
+                        </div>
+                        <div class="mb-3">
+                            <label for="category" class="form-label">Category</label>
+                            <input type="text" id="category" class="form-control">
+                        </div>
+                        <button type="submit" class="btn btn-success w-100">Save Book</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Right Side: Recent Updates -->
+            <div class="col-md-6">
+                <div class="card   p-3">
+                    <h4 class="mb-3">Recently Updated Books</h4>
+                    <div style="max-height:400px; overflow-y:auto;">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Book No</th>
+                                    <th>Title</th>
+                                    <th>Author</th>
+                                    <th>Price</th>
+                                    <th>Category</th>
+                                    <th>Updated</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recentEntries">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
         </div>
-      </div>
     </div>
-  </div>
 
-  <!-- Status Bar -->
-  <div class="status-bar sb-idle mb-2 mt-2" id="sbar" role="status" aria-live="polite">
-    <span id="sIcon"><i class="bi bi-arrow-right"></i></span>
-    <span id="sTxt">Press Enter in Book ID to proceed to recording</span>
-  </div>
 
-  <!-- Step 2: Voice Capture -->
-  <div class="card mb-2">
-    <div class="card-header py-2 d-flex align-items-center gap-2">
-      <span class="badge text-bg-warning" style="font-size:.65rem">2</span>
-      <span class="fw-semibold" style="font-size:.95rem">Voice Capture</span>
-    </div>
-    <div class="card-body py-3">
-      <div class="d-flex gap-2">
-        <button type="button" class="btn btn-outline-warning flex-grow-1 d-flex align-items-center justify-content-center gap-2" id="vbtn">
-          <i class="bi bi-mic" id="vIcon"></i>
-          <span id="vtxt">Start Recording</span>
-        </button>
-        <button type="button" class="btn btn-outline-secondary d-flex align-items-center justify-content-center gap-2" id="recapBtn" disabled title="Recapture - record again if recognition was wrong" style="display:none;min-width:120px">
-          <i class="bi bi-arrow-clockwise"></i> Recapture
-        </button>
-      </div>
-      <div class="tbox mt-2" id="tbox"></div>
-      <div class="pprev mt-2" id="pprev">
-        <div class="d-flex gap-2 mb-1"><span class="pl">Title:</span><span class="pv" id="pT">—</span></div>
-        <div class="d-flex gap-2"><span class="pl">Author:</span><span class="pv" id="pA">—</span></div>
-      </div>
-      
-      <!-- DEBUG PANEL (remove in production) -->
-      <div class="debug-panel" id="debugPanel" style="display:none;">
-        <strong>DEBUG:</strong> Raw="<span id="dbgRaw"></span>" | Sanitized="<span id="dbgSanitized"></span>" | Match=<span id="dbgMatch"></span>
-      </div>
-    </div>
-  </div>
 
-  <!-- Step 3: Price & Category -->
-  <div class="card mb-3">
-    <div class="card-header py-2 d-flex align-items-center gap-2">
-      <span class="badge text-bg-warning" style="font-size:.65rem">3</span>
-      <span class="fw-semibold" style="font-size:.95rem">Price &amp; Category</span>
-    </div>
-    <div class="card-body py-3">
-      <div class="row g-3 align-items-end">
-        <div class="col-auto" style="width:160px">
-          <label for="priceIn" class="form-label small text-secondary mb-1">Price (Rs.)</label>
-          <input type="text" class="form-control" id="priceIn" placeholder="0" disabled>
-          <div class="form-text" style="font-size:.7rem"> Enter → Category</div>
-        </div>
-        <div class="col-auto" style="width:180px">
-          <label for="catIn" class="form-label small text-secondary mb-1">Category No.</label>
-          <input type="text" class="form-control" id="catIn" placeholder="e.g. CAT-05" disabled>
-          <div class="form-text" style="font-size:.7rem">Optional · Enter → Add Book</div>
-        </div>
-        <div class="col-auto">
-          <button type="button" class="btn btn-warning" id="addBtn" disabled style="margin-bottom:1.45rem">
-            <i class="bi bi-plus-lg"></i> Add to Library
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
+    <script>
+        let recognition;
+        let recognizing = false;
+        let approvedTitle = "";
+        let approvedAuthor = "";
+        let recognizedText = "";
+        let currentLang = "s";
 
-  <!-- Step 4: Book List -->
-  <div class="card">
-    <div class="card-header py-2 d-flex align-items-center justify-content-between">
-      <div class="d-flex align-items-center gap-2">
-        <span class="badge text-bg-warning" style="font-size:.65rem">4</span>
-        <span class="fw-semibold" style="font-size:.95rem">Entered Books</span>
-        <span class="badge -subtle text-secondary" style="font-size:.72rem" id="bcnt">0 records</span>
-      </div>
-      <div class="d-flex gap-2">
-        <button type="button" class="btn btn-outline-danger btn-sm" id="clearBtn" style="display:none">
-          <i class="bi bi-trash3"></i> Clear All
-        </button>
-        <button type="button" class="btn btn-outline-warning btn-sm" id="xbtn" disabled>
-          <i class="bi bi-download"></i> Export JSON
-        </button>
-      </div>
-    </div>
-    <div class="card-body p-0">
-      <div id="blist" style="max-height:400px;overflow-y:auto">
-        <div class="text-center py-4 text-secondary" id="emp">
-          <i class="bi bi-book" style="font-size:2rem;opacity:.2"></i>
-          <p class="mt-2 mb-0 small">No books entered yet.</p>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
+        const queryUrl = "/api/sql";
+        const startBtn = document.getElementById("startBtn");
+        const liveDictationBox = document.getElementById("liveDictationBox");
+        const liveDictationLabel = document.getElementById("liveDictationLabel");
+        const liveDictation = document.getElementById("liveDictation");
+        const titleField = document.getElementById("titleField");
+        const authorField = document.getElementById("authorField");
+        const approveField = document.getElementById("approveField");
+        const preview = document.getElementById("preview");
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
-<script>
-/* ═══════════════════════════════════════════════════════════════
-   State Machine (FIXED VERSION):
-     IDLE        → Enter (lang) → validate, focus ID
-     IDLE        → Enter (ID)   → READY (focus voice button)
-     READY       → Enter/click  → RECORDING
-     RECORDING   → Enter        → STOPPING (wait for final result) → PARSE
-     PARSE       → success      → CONFIRMING → PRICE
-     PARSE       → fail         → PARSE_FAIL
-     PRICE       → Enter        → CATEGORY
-     CATEGORY    → Enter        → add book → IDLE
-     PARSE_FAIL  → Enter        → RECORDING
-     Escape      → Any non-IDLE → IDLE
-   ═══════════════════════════════════════════════════════════════ */
+        if (!localStorage.getItem("updatedBooks")) {
+            localStorage.setItem("updatedBooks", JSON.stringify([]));
+        }
 
-const ST = { IDLE:0, READY:1, RECORDING:2, STOPPING:3, CONFIRMING:4, PRICE:5, CATEGORY:6, PARSE_FAIL:7 };
-const STORE_KEY = 'library_books_v3_fixed';
+        // ---- Show / hide the transient listening UI ----
+        function showListeningUI() {
+            liveDictationLabel.classList.remove("label-hidden");
+            liveDictationLabel.classList.add("label-visible");
+            liveDictationBox.classList.remove("collapsed");
+            liveDictationBox.classList.add("expanded");
+        }
+        function hideListeningUI() {
+            liveDictationLabel.classList.remove("label-visible");
+            liveDictationLabel.classList.add("label-hidden");
+            liveDictationBox.classList.remove("expanded");
+            liveDictationBox.classList.add("collapsed");
+        }
 
-let state = ST.IDLE, lang = 's', pendId = '', pendParse = null, fullText = '', interimText = '', isRec = false, recog = null;
-let books = [];
-let stopResolve = null; // Promise resolver for async stop
+        // ---- Field state helpers ----
+        function lockFieldsForRecording() {
+            titleField.value = "";
+            authorField.value = "";
+            titleField.disabled = true;
+            authorField.disabled = true;
+            approveField.disabled = true;
+            approveField.value = "1";
+            preview.textContent = "";
+        }
+        function unlockFieldsForApproval() {
+            titleField.disabled = false;
+            authorField.disabled = false;
+            approveField.disabled = false;
+            approveField.value = "1";
+        }
+        function lockFieldsAfterApproval() {
+            titleField.disabled = true;
+            authorField.disabled = true;
+            approveField.disabled = true;
+        }
 
-// ── localStorage ──
-try { const r = localStorage.getItem(STORE_KEY); if (r) books = JSON.parse(r); } catch(e) {}
-function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify(books)); } catch(e) {} }
+        // ---- Manual navigation ----
+        document.getElementById("book_no").addEventListener("keydown", e => {
+            if (e.key === "Enter") {
+                e.preventDefault();
+                const bookNo = document.getElementById("book_no").value.trim();
+                if (!bookNo) return;
 
-// ── TTS ──
-if (window.speechSynthesis) { speechSynthesis.getVoices(); speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices(); }
-const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+                const sqlCheck = `SELECT book_no,title FROM books WHERE book_no = '${bookNo}'`;
 
-const ttsT = {
-  s: {
-    heard: (t,a) => a==='-' ? `පොත ${t}` : `පොත ${t}, ලියන්නා ${a}`,
-    added: (t) => `${t}, පුස්තකාලයට එකතු කරන ලදී`,
-    dup: 'මෙම පොත් අංකය දැනටමත් පවතී',
-    noId: 'කරුණාකර පොත් අංකය ඇතුළත් කරන්න',
-    fail: 'හඳුනාගත නොහැක. නැවත උත්සාහ කරන්න',
-  },
-  e: {
-    heard: (t,a) => a==='-' ? `Book ${t}` : `Book ${t}, by ${a}`,
-    added: (t) => `${t} has been added to the library`,
-    dup: 'This book ID already exists',
-    noId: 'Please enter a book ID first',
-    fail: 'Could not recognize. Please try again',
-  }
-};
-const byW = { s:'ලියන්නා', e:'by' };
+                fetch(queryUrl, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ query: sqlCheck })
+                })
+                    .then(res => res.json())
+                    .then(rows => {
+                        if (!rows || rows.length === 0) {
+                            showToast('danger', `The book number does not exist`);
+                            playSound("error");
+                            document.getElementById("book_no").value = "";
+                            document.getElementById("book_no").focus();
+                        } else {
+                            preview.textContent = "";
+                            if ((rows[0].title == null) || (rows[0].title == "")) {
+                                document.getElementById("lang").focus();
+                                document.getElementById("lang").select();
+                            } else {
+                                playSound("error");
+                                const duplicateAllow = confirm("Skipping Due to Overwirting. Click Cancel to Overwrite");
+                                if (duplicateAllow) {
+                                    document.getElementById("book_no").value = "";
+                                    document.getElementById("book_no").focus();
+                                } else {
+                                    document.getElementById("lang").focus();
+                                    document.getElementById("lang").select();
+                                }
+                            }
+                        }
+                    })
+                    .catch(err => {
+                        preview.textContent = err.msg;
+                    });
+            }
+        });
 
-// ── DOM ──
-const langIn=document.getElementById('langIn'), langBdg=document.getElementById('langBadge'),
-      idIn=document.getElementById('idIn'), priceIn=document.getElementById('priceIn'),
-      catIn=document.getElementById('catIn'),
-      sbar=document.getElementById('sbar'), sIcon=document.getElementById('sIcon'), sTxt=document.getElementById('sTxt'),
-      vbtn=document.getElementById('vbtn'), vIcon=document.getElementById('vIcon'), vtxt=document.getElementById('vtxt'),
-      recapBtn=document.getElementById('recapBtn'),
-      tbox=document.getElementById('tbox'), pprev=document.getElementById('pprev'),
-      pT=document.getElementById('pT'), pA=document.getElementById('pA'),
-      addBtn=document.getElementById('addBtn'), xbtn=document.getElementById('xbtn'),
-      clearBtn=document.getElementById('clearBtn'), blist=document.getElementById('blist'),
-      bcnt=document.getElementById('bcnt'), toastBox=document.getElementById('toastBox'),
-      debugPanel=document.getElementById('debugPanel'),
-      dbgRaw=document.getElementById('dbgRaw'), dbgSanitized=document.getElementById('dbgSanitized'),
-      dbgMatch=document.getElementById('dbgMatch');
+        document.getElementById("lang").addEventListener("keydown", e => {
+            if (e.key === "Enter") {
+                e.preventDefault();
+                if (document.getElementById("lang").value == "e" || document.getElementById("lang").value == "s") {
+                    startBtn.focus();
+                } else {
+                    document.getElementById("lang").value = "s";
+                    document.getElementById("lang").select();
+                    playSound("error");
+                }
+            }
+        });
 
-/* ── Toast ── */
-let tc=0;
-function toast(msg,type='warning',dur=3500) {
-  const id='t'+(++tc);
-  const icons={success:'bi-check-circle-fill',error:'bi-x-circle-fill',warning:'bi-exclamation-triangle-fill',info:'bi-info-circle-fill'};
-  toastBox.insertAdjacentHTML('beforeend',
-    `<div id="${id}" class="toast align-items-center text-bg-${type} border-0" role="alert" aria-live="assertive" aria-atomic="true">
-      <div class="d-flex"><div class="toast-body d-flex align-items-center gap-2"><i class="bi ${icons[type]||icons.info}"></i> ${esc(msg)}</div>
-      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button></div></div>`);
-  const el=document.getElementById(id);
-  const t=new bootstrap.Toast(el,{delay:dur});
-  t.show();
-  el.addEventListener('hidden.bs.toast',()=>el.remove());
-}
+        // Approve field: Enter to confirm
+        approveField.addEventListener("keydown", e => {
+            if (e.key === "Enter") {
+                e.preventDefault();
+                if (approveField.value === "1") {
+                    approvedTitle = titleField.value;
+                    approvedAuthor = authorField.value;
+                    lockFieldsAfterApproval();
+                    document.getElementById("price").focus();
+                } else {
+                    retryEntry();
+                }
+            }
+        });
 
-function speak(text,l) {
-  if(!window.speechSynthesis) return;
-  speechSynthesis.cancel();
-  const u=new SpeechSynthesisUtterance(text);
-  u.lang=l==='s'?'si-LK':'en-US'; u.rate=0.95;
-  const v=speechSynthesis.getVoices().find(v=>v.lang.toLowerCase().startsWith(l==='s'?'si':'en'));
-  if(v) u.voice=v;
-  speechSynthesis.speak(u);
-}
+        // Title field → author on Enter
+        titleField.addEventListener("keydown", e => {
+            if (e.key === "Enter") {
+                e.preventDefault();
+                authorField.focus();
+                authorField.select();
+            }
+        });
 
-/* ═══════════════════════════════════════════════════════════════
-   FIX #2: Proper Text Sanitization (BEFORE splitting/parsing)
-   ═══════════════════════════════════════════════════════════════ */
-function sanitizeText(t) {
-  if (!t || typeof t !== 'string') return '';
-  
-  // DEBUG: Show raw input
-  console.log('[SANITIZE] Input:', JSON.stringify(t));
-  
-  let result = t
-    // Normalize various dash/hyphen types to standard hyphen
-    .replace(/[\u2010-\u2015\u2212\uFE58\uFE63\uFF0D]/g, '-')
-    // Normalize quotes
-    .replace(/[\u2018\u2019]/g, "'")
-    .replace(/[\u201C\u201D]/g, '"')
-    // Trim leading/trailing whitespace FIRST
-    .trim()
-    // Remove leading/trailing punctuation clusters (but keep internal)
-    .replace(/^[\s\.,;:!\?'"\-\—\–\(\)\[\]\{\}<>]+/, '')
-    .replace(/[\s\.,;:!\?'"\-\—\–\(\)\[\]\{\}<>]+$/, '')
-    // Collapse multiple spaces/tabs/newlines into single space
-    .replace(/\s+/g, ' ')
-    // Remove space before punctuation (e.g., "title ," → "title,")
-    .replace(/\s+([.,;:!?\)>\]}])/g, '$1')
-    // Final trim
-    .trim();
-    
-  console.log('[SANITIZE] Output:', JSON.stringify(result));
-  return result;
-}
+        // Author field → approve on Enter
+        authorField.addEventListener("keydown", e => {
+            if (e.key === "Enter") {
+                e.preventDefault();
+                if (!approveField.disabled) {
+                    approveField.focus();
+                    approveField.select();
+                }
+            }
+        });
 
-/* ═══════════════════════════════════════════════════════════════
-   enterState(ns)
-   ═══════════════════════════════════════════════════════════════ */
-function enterState(ns) {
-  state = ns;
-  const idle = (ns === ST.IDLE);
-  const ready = (ns === ST.READY);
-  langIn.disabled = !(idle || ready);
-  idIn.disabled = !(idle || ready);
-  
-  priceIn.disabled = (ns !== ST.PRICE && ns !== ST.CATEGORY);
-  catIn.disabled = (ns !== ST.CATEGORY);
-  addBtn.disabled = (ns !== ST.CATEGORY);
+        document.getElementById("price").addEventListener("keydown", e => {
+            if (e.key === "Enter") {
+                e.preventDefault();
+                document.getElementById("category").focus();
+                document.getElementById("category").select();
+            }
+        });
 
-  switch(ns) {
-    case ST.IDLE:
-      sbar.className='status-bar sb-idle mb-2 mt-2';
-      sIcon.innerHTML='<i class="bi bi-arrow-right"></i>';
-      sTxt.textContent='Press Enter in Book ID to proceed to recording';
-      vbtn.disabled=!idIn.value.trim();
-      vbtn.className='btn btn-outline-warning flex-grow-1 d-flex align-items-center justify-content-center gap-2';
-      vIcon.className='bi bi-mic'; vtxt.textContent='Start Recording';
-      recapBtn.style.display='none'; recapBtn.disabled=true;
-      debugPanel.style.display='none';
-      break;
+        document.getElementById("category").addEventListener("keydown", e => {
+            if (e.key === "Enter") {
+                e.preventDefault();
+                document.getElementById("bookEntryForm").requestSubmit();
+            }
+        });
 
-    case ST.READY:
-      sbar.className='status-bar sb-idle mb-2 mt-2';
-      sIcon.innerHTML='<i class="bi bi-mic"></i>';
-      sTxt.textContent='Press Enter on the recording button to start';
-      vbtn.disabled=false;
-      vbtn.className='btn btn-outline-warning flex-grow-1 d-flex align-items-center justify-content-center gap-2';
-      vIcon.className='bi bi-mic'; vtxt.textContent='Start Recording';
-      recapBtn.style.display='none'; recapBtn.disabled=true;
-      break;
+        document.body.addEventListener("keydown", function (e) {
+            if (e.key === "Escape") {
+                resetForm();
+            }
+        });
 
-    case ST.RECORDING:
-      sbar.className='status-bar sb-rec mb-2 mt-2';
-      sIcon.innerHTML='<i class="bi bi-circle-fill" style="font-size:.55rem"></i>';
-      sTxt.textContent='Recording... Press Enter to stop';
-      vbtn.disabled=false;
-      vbtn.className='btn btn-outline-danger flex-grow-1 d-flex align-items-center justify-content-center gap-2';
-      vIcon.className='bi bi-stop-fill'; vtxt.textContent='Stop Recording';
-      recapBtn.style.display='none'; recapBtn.disabled=true;
-      break;
+        loadRecentEntries();
+        document.getElementById("book_no").focus();
 
-    case ST.STOPPING: // NEW STATE: Waiting for final result
-      sbar.className='status-bar sb-ok mb-2 mt-2';
-      sIcon.innerHTML='<i class="bi bi-hourglass-split"></i>';
-      sTxt.textContent='Processing... Please wait';
-      vbtn.disabled=true;
-      break;
+        // ---- Voice recognition setup ----
+        if (window.SpeechRecognition || window.webkitSpeechRecognition) {
+            recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+            recognition.continuous = true;
+            recognition.interimResults = true;
 
-    case ST.CONFIRMING:
-      sbar.className='status-bar sb-ok mb-2 mt-2';
-      sIcon.innerHTML='<i class="bi bi-check-circle-fill"></i>';
-      sTxt.textContent='Review above. Click Recapture to redo, or set price below and press Enter';
-      vbtn.disabled=true;
-      vbtn.className='btn btn-outline-success flex-grow-1 d-flex align-items-center justify-content-center gap-2';
-      vIcon.className='bi bi-check-lg'; vtxt.textContent='Recorded OK';
-      recapBtn.style.display='flex'; recapBtn.disabled=false;
-      recapBtn.className='btn btn-outline-warning d-flex align-items-center justify-content-center gap-2';
-      break;
+            recognition.onresult = (event) => {
+                let intertrim = "";
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    if (event.results[i].isFinal) {
+                        recognizedText += event.results[i][0].transcript;
+                    } else {
+                        intertrim += event.results[i][0].transcript;
+                    }
+                }
+                liveDictation.value = recognizedText + intertrim;
+            };
 
-    case ST.PRICE:
-      sbar.className='status-bar sb-ok mb-2 mt-2';
-      sIcon.innerHTML='<i class="bi bi-pencil-square"></i>';
-      sTxt.textContent='Enter price (or leave empty for 0) and press Enter to go to Category';
-      recapBtn.style.display='none'; recapBtn.disabled=true;
-      break;
+            recognition.onerror = (event) => {
+                preview.textContent = "Error: " + event.error;
+                // On error, make sure UI resets so user can retry
+                if (event.error === "aborted" || event.error === "no-speech") {
+                    recognizing = false;
+                    hideListeningUI();
+                    startBtn.textContent = "Start Recognition";
+                    startBtn.classList.remove("btn-danger");
+                    startBtn.classList.add("btn-primary");
+                }
+            };
 
-    case ST.CATEGORY:
-      sbar.className='status-bar sb-ok mb-2 mt-2';
-      sIcon.innerHTML='<i class="bi bi-tag"></i>';
-      sTxt.textContent='Enter category number (optional) and press Enter to add book';
-      recapBtn.style.display='none'; recapBtn.disabled=true;
-      break;
+            recognition.onend = () => {
+                // If we're still marked as recognizing, the end was unexpected
+                // (e.g. silence timeout). Reset UI so user can restart.
+                if (recognizing) {
+                    recognizing = false;
+                    hideListeningUI();
+                    startBtn.textContent = "Start Recognition";
+                    startBtn.classList.remove("btn-danger");
+                    startBtn.classList.add("btn-primary");
+                }
+            };
+        } else {
+            showToast('danger', `Speech recognition not supported`);
+        }
 
-    case ST.PARSE_FAIL:
-      sbar.className='status-bar sb-fail mb-2 mt-2';
-      sIcon.innerHTML='<i class="bi bi-exclamation-circle-fill"></i>';
-      sTxt.textContent='Could not parse. Press Enter or click Recapture to retry';
-      vbtn.disabled=false;
-      vbtn.className='btn btn-outline-warning flex-grow-1 d-flex align-items-center justify-content-center gap-2';
-      vIcon.className='bi bi-arrow-clockwise'; vtxt.textContent='Retry Recording';
-      recapBtn.style.display='flex'; recapBtn.disabled=false;
-      recapBtn.className='btn btn-outline-danger d-flex align-items-center justify-content-center gap-2';
-      debugPanel.style.display='block'; // Show debug on fail
-      break;
-  }
-}
+        // ---- Safe start that retries if recognition hasn't fully stopped yet ----
+        function tryStartRecognition(langInput) {
+            try {
+                recognition.lang = (langInput === "e") ? "en-US" : "si-LK";
+                recognition.start();
+                onRecognitionStarted(langInput);
+            } catch (e) {
+                if (e.name === "InvalidStateError") {
+                    setTimeout(() => tryStartRecognition(langInput), 200);
+                } else {
+                    throw e;
+                }
+            }
+        }
 
-/* ═══════════════════════════════════════════════════════════════
-   FIX #1: Async stopRec() with Promise
-   ═══════════════════════════════════════════════════════════════ */
-function stopRecAsync() {
-  return new Promise((resolve) => {
-    if (!recog || !isRec) {
-      resolve();
-      return;
-    }
-    
-    isRec = false;
-    stopResolve = resolve; // Store resolver
-    
-    // Set timeout fallback (in case onend never fires)
-    setTimeout(() => {
-      if (stopResolve) {
-        console.warn('[REC] Timeout waiting for stop, resolving anyway');
-        stopResolve();
-        stopResolve = null;
-      }
-    }, 1500); // 1.5 second timeout
-    
-    try {
-      recog.stop();
-    } catch(e) {
-      console.error('[REC] Error stopping:', e);
-      if (stopResolve) {
-        stopResolve();
-        stopResolve = null;
-      }
-    }
-  });
-}
+        function onRecognitionStarted(langInput) {
+            playSound("toggle_on");
+            recognizing = true;
+            recognizedText = "";
+            liveDictation.value = "";
 
-/* ═══════════════════════════════════════════════════════════════
-   handleEnter() - FIXED with async/await
-   ═══════════════════════════════════════════════════════════════ */
-async function handleEnter() {
-  switch(state) {
-    case ST.IDLE:
-      if(document.activeElement===langIn) {
-        const v=langIn.value.toLowerCase().trim();
-        lang=(v==='e')?'e':'s'; langIn.value=lang; updateBadge();
-        idIn.focus();
-      } else {
-        const id=idIn.value.trim();
-        if(!id) { toast(ttsT[lang].noId,'danger'); speak(ttsT[lang].noId,lang); idIn.classList.add('is-invalid'); setTimeout(()=>idIn.classList.remove('is-invalid'),2000); idIn.focus(); return; }
-        if(books.some(b=>b.bookId.toLowerCase()===id.toLowerCase())) { toast(ttsT[lang].dup,'danger',4000); speak(ttsT[lang].dup,lang); idIn.classList.add('is-invalid'); setTimeout(()=>idIn.classList.remove('is-invalid'),2500); return; }
-        pendId=id;
-        enterState(ST.READY);
-        vbtn.focus();
-      }
-      break;
+            showListeningUI();
+            lockFieldsForRecording();
 
-    case ST.READY:
-      enterState(ST.RECORDING);
-      startRec();
-      break;
+            startBtn.textContent = "Stop Recognition";
+            startBtn.classList.remove("btn-primary");
+            startBtn.classList.add("btn-danger");
+        }
 
-    case ST.RECORDING:
-      // FIX: Now properly waits for recognition to fully stop
-      enterState(ST.STOPPING);
-      
-      await stopRecAsync();
-      
-      // Small delay to ensure all events processed
-      await new Promise(r => setTimeout(r, 100));
-      
-      // Combine fullText + any remaining interimText as fallback
-      const textToParse = fullText.trim() || interimText.trim();
-      console.log('[PARSE] Text to parse:', JSON.stringify(textToParse));
-      console.log('[PARSE] fullText:', JSON.stringify(fullText));
-      console.log('[PARSE] interimText:', JSON.stringify(interimText));
-      
-      // Update debug panel
-      dbgRaw.textContent = textToParse;
-      
-      const p = parseIn(textToParse, lang);
-      
-      if(p) {
-        pendParse=p; 
-        pT.textContent=p.title; 
-        pA.textContent=p.author; 
-        pprev.classList.add('show'); 
-        tbox.classList.add('fin');
-        
-        // Update debug with success info
-        dbgSanitized.textContent = `${p.title} | ${p.author}`;
-        dbgMatch.textContent = '✓ SUCCESS';
-        dbgMatch.style.color = '#4ade80';
-        
-        speak(ttsT[lang].heard(p.title,p.author),lang);
-        toast('Title: '+p.title+' | Author: '+p.author,'success');
-        enterState(ST.CONFIRMING);
-        setTimeout(()=>{ 
-          enterState(ST.PRICE); 
-          priceIn.focus(); 
-          priceIn.select(); 
-        }, 500);
-      } else {
-        // Update debug with failure info
-        dbgSanitized.textContent = '(parse failed)';
-        dbgMatch.textContent = '✗ FAILED';
-        dbgMatch.style.color = '#f87171';
-        debugPanel.style.display = 'block';
-        
-        toast(ttsT[lang].fail,'danger',4500); 
-        speak(ttsT[lang].fail,lang);
-        tbox.textContent='Unrecognized format. Will retry.';
-        enterState(ST.PARSE_FAIL);
-      }
-      break;
+        // ---- Start / Stop button ----
+        startBtn.addEventListener("click", () => {
+            if (!recognition) return;
 
-    case ST.PRICE:
-      enterState(ST.CATEGORY);
-      catIn.focus();
-      catIn.select();
-      break;
+            currentLang = document.getElementById("lang").value.toLowerCase();
 
-    case ST.CATEGORY:
-      confirmAdd();
-      break;
+            if (!recognizing) {
+                tryStartRecognition(currentLang);
+            } else {
+                recognition.stop();
+                playSound("toggle_off");
 
-    case ST.PARSE_FAIL:
-      enterState(ST.RECORDING);
-      startRec();
-      break;
-  }
-}
+                // Mark as not recognizing BEFORE onend fires,
+                // so onend won't mistakenly reset the UI
+                recognizing = false;
 
-function handleEscape() {
-  if(state===ST.IDLE) return;
-  stopRec(); 
-  speechSynthesis.cancel();
-  stopResolve = null; // Clear pending promise
-  pendId=''; pendParse=null; fullText=''; interimText='';
-  idIn.value=''; priceIn.value=''; 
-  tbox.className='tbox mt-2'; tbox.textContent='';
-  pprev.classList.remove('show');
-  enterState(ST.IDLE);
-  langIn.focus(); langIn.select();
-  toast('Cancelled','warning');
-}
+                hideListeningUI();
 
-/* ── Recapture handler ── */
-function handleRecapture() {
-  stopRec();
-  pendParse=null; fullText=''; interimText='';
-  tbox.className='tbox mt-2'; tbox.textContent='';
-  pprev.classList.remove('show');
-  enterState(ST.RECORDING);
-  startRec();
-  toast('Starting new recording...','info',2000);
-}
+                startBtn.textContent = "Start Recognition";
+                startBtn.classList.remove("btn-danger");
+                startBtn.classList.add("btn-primary");
 
-/* ═══════════════════════════════════════════════════════════════
-   Voice Recording (FIXED: Better result handling)
-   ═══════════════════════════════════════════════════════════════ */
-function startRec() {
-  if(!SR) return;
-  if(recog){isRec=false;try{recog.abort();}catch(e){}}
-  isRec=true; fullText=''; interimText='';
-  recog=new SR();
-  recog.lang=lang==='s'?'si-LK':'en-US';
-  recog.continuous=true; recog.interimResults=true;
-  recog.maxAlternatives=lang==='s'?5:3;
-  tbox.textContent='Listening...'; tbox.className='tbox mt-2 vis';
+                processCapturedText(recognizedText, currentLang);
+            }
+        });
 
-  recog.onresult=function(ev) {
-    let im='';
-    for(let i=ev.resultIndex;i<ev.results.length;i++){
-      if(ev.results[i].isFinal) {
-        // Append final results with space
-        const transcript = ev.results[i][0].transcript;
-        fullText += (fullText && !fullText.endsWith(' ') ? ' ' : '') + transcript;
-        console.log('[REC] Final:', JSON.stringify(transcript), '| Full so far:', JSON.stringify(fullText));
-      } else {
-        im += ev.results[i][0].transcript;
-        console.log("Transcript is:"+ev.results[i][0].transcript);
-      }
-    }
-    // Update interim text for display and fallback
-    interimText = im;
-    
-    // Display combined text
-    const displayText = fullText + (im ? ' ' + im : '');
-    tbox.textContent = displayText || 'Listening...';
-  };
-  
-  // FIX: Resolve the stop promise when recognition actually ends
-  recog.onend=function(){
-    console.log('[REC] onend fired, isRec=', isRec);
-    if(stopResolve){
-      stopResolve();
-      stopResolve = null;
-    }
-    // Only restart if we're still supposed to be recording
-    if(isRec){
-      try{
-        recog.start();
-      }catch(e){
-        setTimeout(()=>{
-          if(isRec) try{recog.start();}catch(e2){}
-        },200);
-      }
-    }
-  };
-  
-  recog.onerror=function(ev){
-    console.error('[REC] Error:', ev.error);
-    if(ev.error!=='aborted'&&ev.error!=='no-speech'){
-      if(isRec)setTimeout(()=>{if(isRec)try{recog.start();}catch(e){}},500);
-    }
-    // Resolve stop promise on error too
-    if(stopResolve && ev.error === 'aborted'){
-      stopResolve();
-      stopResolve = null;
-    }
-  };
-  
-  try{recog.start();}catch(e){toast('Failed to start voice recognition','danger');enterState(ST.IDLE);}
-}
+        // ---- Process captured text into title / author ----
+        function processCapturedText(text, lang) {
+            const trimmed = text.trim();
 
-// Keep sync version for escape/cancel
-function stopRec(){isRec=false;if(recog)try{recog.stop();}catch(e){}}
 
-/* ═══════════════════════════════════════════════════════════════
-   Parsing — FIXED: Sanitize BEFORE checking regex
-   ═══════════════════════════════════════════════════════════════ */
-function parseIn(t,l){return l==='s'?parseSi(t):parseEn(t);}
+            let cleaned = trimmed.replace(/[.,\-]+/g, " ").replace(/\s+/g, " ").trim();
+            let parts = cleaned.split(/ by | ලියන්නා /i);
 
-function parseEn(t) {
-  // FIX: Sanitize FIRST, then check regex
-  let c = sanitizeText(t);
-  console.log('[parseEn] Sanitized:', JSON.stringify(c));
-  
-  if (!c) return null;
-  
-  // More flexible pattern matching
-  if (!/^book\s/i.test(c)) {
-    console.warn('[parseEn] Does not start with "book":', JSON.stringify(c));
-    return null;
-  }
-  
-  const p = c.split(/\s+by\s+/i);
-  const title = sanitizeText(p[0].replace(/^book\s+/i, ''));
-  if (!title) return null;
-  
-  const author = (p.length >= 2) ? sanitizeText(p.slice(1).join(' by ')) : '-';
-  return { title, author: author || '-' };
-}
+            let title = parts[0].replace(/^book\s+/i, "").replace(/^පොත\s+/i, "").trim();
+            let author = parts[1] ? parts[1].trim() : "";
 
-function parseSi(t) {
-  // FIX: Sanitize FIRST
-  let c = sanitizeText(t);
-  console.log('[parseSi] Sanitized:', JSON.stringify(c));
-  
-  if (!c) return null;
-  
-  // Check for Sinhala OR English "book" keyword
-  if (!/පොත/.test(c) && !/^book\s/i.test(c)) {
-    console.warn('[parseSi] No keyword found:', JSON.stringify(c));
-    return null;
-  }
-  
-  const seps = [/\s+ලියන්නා\s+/i, /\s+රචකයා\s*/i, /\s+රචක\s+/i, /\s+by\s+/i];
-  let parts = null;
-  for (const s of seps) { 
-    const sp = c.split(s); 
-    if (sp.length >= 2) { 
-      parts = sp; 
-      break; 
-    } 
-  }
-  
-  let title = sanitizeText(c.replace(/පොත\s*/i, '').replace(/^book\s+/i, ''));
-  let author = '-';
-  
-  if (parts && parts.length >= 2) {
-    title = sanitizeText(parts[0].replace(/පොත\s*/i, '').replace(/^book\s+/i, ''));
-    author = sanitizeText(parts.slice(1).join(' ')) || '-';
-  }
-  
-  return title ? { title, author } : null;
-}
+            titleField.value = title;
+            authorField.value = author;
+            unlockFieldsForApproval();
 
-/* ═══════════════════════════════════════════════════════════════
-   confirmAdd()
-   ═══════════════════════════════════════════════════════════════ */
-function confirmAdd() {
-  const rawPrice=priceIn.value.trim();
-  const price=(rawPrice===''||isNaN(Number(rawPrice)))?0:Math.round(Number(rawPrice)*100)/100;
-  const category=catIn.value.trim()||'-';
-  const book={bookId:pendId,title:pendParse.title,author:pendParse.author,price,category,lang};
-  books.push(book);
-  save();
-  speak(ttsT[lang].added(book.title),lang);
-  toast('"'+book.title+'" added successfully','success');
-  pendId=''; pendParse=null; fullText=''; interimText='';
-  idIn.value=''; priceIn.value=''; 
-  tbox.className='tbox mt-2'; tbox.textContent='';
-  pprev.classList.remove('show');
-  renderList();
-  enterState(ST.IDLE);
-  langIn.focus(); langIn.select();
-}
+            approveField.focus();
+            approveField.select();
+        }
 
-function deleteBook(i){if(i<0||i>=books.length)return;const r=books.splice(i,1)[0];save();renderList();toast('"'+r.title+'" removed','warning');}
-function speakBook(i){if(i<0||i>=books.length)return;const b=books[i];speak(ttsT[b.lang||'e'].heard(b.title,b.author),b.lang||'e');}
+        function retryEntry() {
+            titleField.value = "";
+            authorField.value = "";
+            titleField.disabled = true;
+            authorField.disabled = true;
+            approveField.disabled = true;
+            approveField.value = "1";
+            recognizedText = "";
+            liveDictation.value = "";
+            preview.textContent = "";
+            startBtn.focus();
+        }
 
-function clearAll() {
-  if(!books.length) return;
-  const m=document.createElement('div'); m.className='modal fade'; m.tabIndex=-1;
-  m.innerHTML=`<div class="modal-dialog modal-dialog-centered modal-sm"><div class="modal-content">
-    <div class="modal-header"><h6 class="modal-title">Clear All Books?</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-    <div class="modal-body small text-secondary">Delete all <strong class="text-warning">${books.length}</strong> records permanently?</div>
-    <div class="modal-footer"><button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-    <button type="button" class="btn btn-sm btn-danger" id="cfmClr">Clear All</button></div></div></div>`;
-  document.body.appendChild(m);
-  const md=new bootstrap.Modal(m); md.show();
-  document.getElementById('cfmClr').onclick=()=>{books=[];save();renderList();md.hide();toast('All books cleared','warning');};
-  m.addEventListener('hidden.bs.modal',()=>m.remove());
-}
+        // ---- localStorage helpers ----
+        function addUpdatedBook(bookNo) {
+            let updated = JSON.parse(localStorage.getItem("updatedBooks"));
+            updated = updated.filter(b => b.bookNo !== bookNo);
+            updated.push({ bookNo: bookNo, timestamp: Date.now() });
+            localStorage.setItem("updatedBooks", JSON.stringify(updated));
+        }
 
-/* ═══════════════════════════════════════════════════════════════
-   renderList()
-   ═══════════════════════════════════════════════════════════════ */
-function renderList() {
-  bcnt.textContent=books.length+' record'+(books.length!==1?'s':'');
-  xbtn.disabled=!books.length;
-  clearBtn.style.display=books.length?'':'none';
-  blist.innerHTML='';
-  if(!books.length){
-    blist.innerHTML='<div class="text-center py-4 text-secondary"><i class="bi bi-book" style="font-size:2rem;opacity:.2"></i><p class="mt-2 mb-0 small">No books entered yet.</p></div>';
-    return;
-  }
-  books.forEach((b,i)=>{
-    const bw=byW[b.lang||'e'], tag=b.lang==='s'?'SI':'EN', vc=b.lang==='s'?'warning':'info';
-    const row=document.createElement('div');
-    row.className='d-flex align-items-center gap-2 px-3 py-2';
-    row.style.borderBottom='1px solid var(--bs-border-color)';
-    row.innerHTML=`
-      <span class="badge text-bg-warning" style="font-size:.72rem;min-width:26px">${i+1}</span>
-      <div class="flex-grow-1" style="min-width:0">
-        <div class="fw-bold text-truncate" style="font-size:.9rem" title="${esc(b.title)}">${esc(b.title)}</div>
-        <div class="text-secondary" style="font-size:.78rem">${bw} <span class="text-warning">${esc(b.author)}</span></div>
-      </div>
-      <span class="badge text-bg-${vc} rlt">${tag}</span>
-      <span class="badge -subtle text-secondary" style="font-size:.7rem">Rs. ${b.price}</span>
-      <span class="badge bg-primary-subtle text-primary" style="font-size:.7rem"${b.category&&b.category!=='-'?' title="'+esc(b.category)+'"':''}>${esc(b.category===''?'—':b.category)}</span>
-      <span class="text-secondary" style="font-size:.72rem;font-weight:600;opacity:.6">${esc(b.bookId)}</span>
-      <button class="btn btn-outline-info btn-sm py-0 px-1" style="font-size:.72rem" data-sp="${i}" title="Read aloud"><i class="bi bi-volume-up"></i></button>
-      <button class="btn btn-outline-danger btn-sm py-0 px-1" style="font-size:.72rem" data-dl="${i}" title="Remove"><i class="bi bi-x-lg"></i></button>`;
-    blist.appendChild(row);
-  });
-  blist.querySelectorAll('[data-sp]').forEach(b=>b.onclick=()=>speakBook(+b.dataset.sp));
-  blist.querySelectorAll('[data-dl]').forEach(b=>b.onclick=()=>deleteBook(+b.dataset.dl));
-}
+        function getSortedBookNumbers() {
+            const updated = JSON.parse(localStorage.getItem("updatedBooks"));
+            return updated
+                .sort((a, b) => b.timestamp - a.timestamp)
+                .map(b => b.bookNo);
+        }
 
-function exportJSON() {
-  if(!books.length){toast('No books to export.','danger');return;}
-  const p={exportedAt:new Date().toISOString(),totalRecords:books.length,books:books.map(b=>({bookId:b.bookId,title:b.title,author:b.author,price:b.price,category:b.category||null,language:b.lang==='s'?'Sinhala':'English'}))};
-  const blob=new Blob([JSON.stringify(p,null,2)],{type:'application/json'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');a.href=url;a.download='books.json';a.style.display='none';
-  document.body.appendChild(a);a.click();
-  setTimeout(()=>{URL.revokeObjectURL(url);a.remove();},100);
-  toast('Exported '+books.length+' book'+(books.length!==1?'s':'')+' as books.json','success');
-}
+        function formatTimestamp(timestamp) {
+            const date = new Date(timestamp);
+            return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        }
 
-function updateBadge(){
-  if(lang==='s'){langBdg.textContent='සිංහල';langBdg.className='badge text-bg-warning';langBdg.style.fontSize='.78rem';}
-  else{langBdg.textContent='English';langBdg.className='badge text-bg-info';langBdg.style.fontSize='.78rem';}
-}
-function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+        // ---- Save entry ----
+        document.getElementById("bookEntryForm").addEventListener("submit", (e) => {
+            e.preventDefault();
 
-/* ═══════════════════════════════════════════════════════════════
-   Events
-   ═══════════════════════════════════════════════════════════════ */
-langIn.addEventListener('focus',function(){this.select();});
-langIn.addEventListener('input',function(){const v=this.value.toLowerCase().trim();if(v==='s'||v==='e')this.value=v;else if(v.length)this.value=lang;});
-idIn.addEventListener('input',function(){this.classList.remove('is-invalid');if(state===ST.IDLE)vbtn.disabled=!this.value.trim();});
+            const bookNo = document.getElementById("book_no").value;
+            const price = document.getElementById("price").value || 0;
+            const category = document.getElementById("category").value.trim();
 
-document.addEventListener('keydown',function(e){
-  if(e.key==='Enter'){
-    if(document.activeElement===xbtn||document.activeElement===clearBtn||document.activeElement===addBtn) return;
-    e.preventDefault(); handleEnter();
-  }
-  if(e.key==='Escape'){e.preventDefault();handleEscape();}
-});
+            const sqlUpdate = `
+                UPDATE books
+                SET title = '${approvedTitle}',
+                    author = '${approvedAuthor}',
+                    price = ${price},
+                    category = '${category}'
+                WHERE book_no = '${bookNo}';
+            `;
 
-vbtn.addEventListener('click',function(){ handleEnter(); });
-recapBtn.addEventListener('click',handleRecapture);
-addBtn.addEventListener('click',handleEnter);
-xbtn.addEventListener('click',exportJSON);
-clearBtn.addEventListener('click',clearAll);
+            fetch(queryUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ query: sqlUpdate })
+            })
+                .then(res => res.text())
+                .then(msg => {
+                    console.log("DB updated:", msg);
+                    playSound("success");
+                    addUpdatedBook(bookNo);
+                    loadRecentEntries();
+                })
+                .catch(err => {
+                    showToast('danger', `Error ${err.message}`);
+                });
 
-/* ═══════════════════════════════════════════════════════════════
-   Init
-   ═══════════════════════════════════════════════════════════════ */
-if(!SR) vbtn.disabled=true;
-enterState(ST.IDLE);
-renderList();
-langIn.focus(); langIn.select();
+            resetForm();
+        });
 
-console.log('%c🔧 LIBRARY BOOK ENTRY - FIXED VERSION', 'color: #4ade80; font-size: 14px; font-weight: bold;');
-console.log('%cFixes applied:\n1. Async stopRec() with Promise\n2. Sanitization BEFORE regex check\n3. Debug panel on parse failure\n4. Better interim text handling', 'color: #fbbf24;');
-</script>
+        // ---- Recent entries table ----
+        function loadRecentEntries() {
+            const sortedBookNos = getSortedBookNumbers();
+
+            if (sortedBookNos.length === 0) {
+                document.getElementById("recentEntries").innerHTML = "<tr><td colspan='7'>No recent updates</td></tr>";
+                return;
+            }
+
+            const updatedMap = {};
+            JSON.parse(localStorage.getItem("updatedBooks")).forEach(b => {
+                updatedMap[b.bookNo] = b.timestamp;
+            });
+
+            const sql = `SELECT book_no, title, author, price, category FROM books WHERE book_no IN (${sortedBookNos.map(b => `'${b}'`).join(",")})`;
+
+            fetch(queryUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ query: sql })
+            })
+                .then(res => res.json())
+                .then(rows => {
+                    const tbody = document.getElementById("recentEntries");
+                    tbody.innerHTML = "";
+                    rows.sort((a, b) => (updatedMap[b.book_no] || 0) - (updatedMap[a.book_no] || 0));
+
+                    rows.forEach(e => {
+                        const tr = document.createElement("tr");
+                        tr.innerHTML = `
+                            <td>${e.book_no}</td>
+                            <td>${e.title || ""}</td>
+                            <td>${e.author || ""}</td>
+                            <td>${e.price || ""}</td>
+                            <td>${e.category || ""}</td>
+                            <td>${formatTimestamp(updatedMap[e.book_no])}</td>
+                            <td><button class="btn btn-sm btn-danger" onclick="undoEntry('${e.book_no}')">Undo</button></td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                });
+        }
+
+        function undoEntry(bookNo) {
+            const sql = `
+                UPDATE books
+                SET title = NULL,
+                    author = NULL,
+                    price = NULL,
+                    category = NULL
+                WHERE book_no = '${bookNo}';
+            `;
+
+            fetch(queryUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ query: sql })
+            })
+                .then(res => res.text())
+                .then(msg => {
+                    console.log("DB cleared:", msg);
+                    let updated = JSON.parse(localStorage.getItem("updatedBooks"));
+                    updated = updated.filter(b => b.bookNo !== bookNo);
+                    localStorage.setItem("updatedBooks", JSON.stringify(updated));
+                    loadRecentEntries();
+                })
+                .catch(err => {
+                    showToast('danger', `Error ${err.message}`);
+                });
+        }
+
+        function resetForm() {
+            document.getElementById("book_no").value = "";
+            document.getElementById("price").value = "";
+            titleField.value = "";
+            authorField.value = "";
+            titleField.disabled = true;
+            authorField.disabled = true;
+            approveField.disabled = true;
+            approveField.value = "1";
+            recognizedText = "";
+            liveDictation.value = "";
+            hideListeningUI();
+            preview.textContent = "";
+            document.getElementById("book_no").focus();
+        }
+    </script>
 </body>
+
 </html>

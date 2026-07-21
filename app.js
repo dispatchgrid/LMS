@@ -125,11 +125,9 @@ app.get('/dataentry', (req, res) => {
 });
 
 app.get('/test', (req, res) => {
-    if (!authenticated) {
-        res.sendFile(path.join(__dirname, 'views', 'login.html'));
-    } else {
-        res.sendFile(path.join(__dirname, 'views', 'test2.html'));
-    }
+
+        res.sendFile(path.join(__dirname, 'views', 'dataentryLegacy.html'));
+    
 });
 
 app.get('/statistics', (req, res) => {
