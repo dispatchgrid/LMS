@@ -164,14 +164,20 @@ if (navbar) {
             document.addEventListener("input", handleTranslitInput);
             document.addEventListener("keydown", handleTranslitKeydown, true);
             playSound("toggle_on");
-            showToast('info', 'Transliteration started')
-
+            showToast('info', 'Transliteration started');
+            // Auto-focus last known input field
+            if (activeInput) {
+                activeInput.focus();
+            }
         } else {
             document.removeEventListener("input", handleTranslitInput);
             document.removeEventListener("keydown", handleTranslitKeydown, true);
             closeDropdown();
-            showToast('info', 'Transliteration ended')
+            showToast('info', 'Transliteration ended');
             playSound("toggle_off");
+            if (activeInput) {
+                activeInput.focus();
+            }
         }
     });
 
