@@ -3,68 +3,87 @@ body {
     background: url('/assets/bg.png') no-repeat center center fixed;
     background-size: cover;
 }
+
 .footer {
     position: fixed;
     bottom: 0;
     left: 0;
     width: 100%;
-    background: rgba(47, 47, 228, 0.3); /* semi-transparent base */
+    background: rgba(47, 47, 228, 0.3);
+    /* semi-transparent base */
     color: #fff;
     text-align: center;
     padding: 10px;
     z-index: 100;
-  
+
     /* Liquid glass effect */
-    backdrop-filter: blur(10px);       /* frosted blur */
-    -webkit-backdrop-filter: blur(10px); /* Safari support */
-    border-top: 1px solid rgba(255, 255, 255, 0.2); /* subtle border */
-    box-shadow: 0 -2px 10px rgba(0,0,0,0.3);        /* soft shadow */
-  }
-  
+    backdrop-filter: blur(10px);
+    /* frosted blur */
+    -webkit-backdrop-filter: blur(10px);
+    /* Safari support */
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+    /* subtle border */
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.3);
+    /* soft shadow */
+}
+
 /* Body */
 body {
-  background-color: #0D0D0D; /* deep black */
-  color: #F0F0F0;
+    background-color: #0D0D0D;
+    /* deep black */
+    color: #F0F0F0;
 }
 
 /* Navbar */
 .navbar {
-  background-color: #1A1A1A;
+    /*background-color: #1A1A1A;*/
+    background: #1a1a1a8f;
+    /* semi-transparent base */
+    backdrop-filter: blur(5px);
+    /* frosted blur */
+    -webkit-backdrop-filter: blur(5px);
+    /* Safari support */
+   
+    /* subtle border */
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.3);
+    /* soft shadow */
 }
+
 .navbar .navbar-brand,
 .navbar .nav-link {
-  color: #F0F0F0;
+    color: #F0F0F0;
 }
-.navbar .nav-link:hover,
-.navbar .nav-link.active {
-  color: #FF4081; /* accent */
-}
+
 
 /* Buttons */
 .btn-primary {
-  background-color: #2979FF;
-  border-color: #2979FF;
-  color: #FFFFFF;
+    background-color: #2979FF;
+    border-color: #2979FF;
+    color: #FFFFFF;
 }
+
 .btn-success {
-  background-color: #00E676;
-  border-color: #00E676;
-  color: #000000;
+    background-color: #00E676;
+    border-color: #00E676;
+    color: #000000;
 }
+
 .btn-danger {
-  background-color: #FF1744;
-  border-color: #FF1744;
-  color: #FFFFFF;
+    background-color: #FF1744;
+    border-color: #FF1744;
+    color: #FFFFFF;
 }
+
 .btn-warning {
-  background-color: #FFC400;
-  border-color: #FFC400;
-  color: #000000;
+    background-color: #FFC400;
+    border-color: #FFC400;
+    color: #000000;
 }
+
 .btn-secondary {
-  background-color: #7C4DFF;
-  border-color: #7C4DFF;
-  color: #FFFFFF;
+    background-color: #7C4DFF;
+    border-color: #7C4DFF;
+    color: #FFFFFF;
 }
 
 /* Body */
@@ -72,17 +91,17 @@ body {
 
 /* Tables (applies to .table) */
 .table {
-  background-color: #1A1A1A !important;
-  color: #E0E0E0;
-  border: 1px solid #2C2C2C;
+    background-color: #1A1A1A !important;
+    color: #E0E0E0;
+    border: 1px solid #2C2C2C;
 }
 
 .table thead {
-  background-color: #222222 !important;
+    background-color: #222222 !important;
 }
 
 .table tbody tr {
-  transition: background-color 0.25s ease, box-shadow 0.25s ease;
+    transition: background-color 0.25s ease, box-shadow 0.25s ease;
 }
 
 
@@ -90,73 +109,91 @@ body {
 .table td,
 .table th {
     background-color: #1A1A1A !important;
-  border-color: #333333;
-  color: #F0F0F0;
-  
+    border-color: #333333;
+    color: #F0F0F0;
+
 }
 
 
 /* Textboxes */
 .form-control {
-  background-color: #121212;
-  color: #F0F0F0;
-  border: 1px solid #444;
-  transition: box-shadow 0.3s ease;
+    background-color: #121212;
+    color: #F0F0F0;
+    border: 1px solid #444;
+    transition: box-shadow 0.3s ease;
 }
+
 .form-control:focus {
-  box-shadow: 0 0 8px rgba(41, 121, 255, 0.6); /* glow on focus */
+    box-shadow: 0 0 8px rgba(41, 121, 255, 0.6);
+    /* glow on focus */
 }
+
 .form-control::placeholder {
-  color: #B0B0B0;
+    color: #B0B0B0;
 }
 
 /* Dropdowns */
 .dropdown-menu {
-  background-color: #1E1E1E;
-  color: #F0F0F0;
+    background-color: #1E1E1E;
+    color: #F0F0F0;
 }
+
 .dropdown-item {
-  transition: background-color 0.2s ease, transform 0.2s ease;
+    transition: background-color 0.2s ease, transform 0.2s ease;
 }
+
 .dropdown-item:hover,
 .dropdown-item:focus {
-  background-color: #2979FF;
-  color: #FFFFFF;
-  transform: translateX(4px); /* slide effect */
+    background-color: #2979FF;
+    color: #FFFFFF;
+    transform: translateX(4px);
+    /* slide effect */
 }
+
 .dropdown-item.active {
-  background-color: #FF4081;
-  color: #FFFFFF;
+    background-color: #FF4081;
+    color: #FFFFFF;
 }
 
 /* Cards with glow */
 .card {
-  background-color: #1A1A1A;
-  border: 1px solid #2C2C2C;
-  color: #F0F0F0;
-  box-shadow: 0 0 12px rgba(255, 64, 129, 0.2); /* soft glow */
-  transition: box-shadow 0.1s ease, transform 0.1s ease;
-}
-.card:hover {
-  box-shadow: 0 0 20px rgba(255, 64, 129, 0.3); /* stronger glow */
+    background-color: #1A1A1A;
+    border: 1px solid #2C2C2C;
+    color: #F0F0F0;
+    box-shadow: 0 0 12px rgba(255, 64, 129, 0.2);
+    /* soft glow */
+    transition: box-shadow 0.1s ease, transform 0.1s ease;
 }
 
-.toast{
+.card:hover {
+    box-shadow: 0 0 20px rgba(255, 64, 129, 0.3);
+    /* stronger glow */
+}
+
+.toast {
     z-index: 99999 !important;
 }
 
 ::-webkit-scrollbar {
-    width: 10px;              /* scrollbar width */
-  }
-  ::-webkit-scrollbar-track {
-    background: #1e1e1e;       /* track background */
-  }
-  ::-webkit-scrollbar-thumb {
-    background-color: #4caf50; /* thumb color */
-    border-radius: 5px;        /* rounded corners */
-    border: 2px solid #1e1e1e; /* space around thumb */
-  }
-  ::-webkit-scrollbar-thumb:hover {
-    background-color: #66bb6a; /* hover effect */
-  }
-  
+    width: 10px;
+    /* scrollbar width */
+}
+
+::-webkit-scrollbar-track {
+    background: #1e1e1e;
+    /* track background */
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: #4caf50;
+    /* thumb color */
+    border-radius: 5px;
+    /* rounded corners */
+    border: 2px solid #1e1e1e;
+    /* space around thumb */
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background-color: #66bb6a;
+    /* hover effect */
+}

@@ -73,7 +73,7 @@
     <script>
         const QUERY_LIMIT = 20;
 
-        let currentSortCol = -1;
+        let currentSortCol = -1;    
         let currentSortDir = "asc";
 
         function loadData() {
@@ -192,7 +192,7 @@
                 }
 
                 tbody.innerHTML += `
-                    <tr class="${row.status === 'Overdue' ? 'table-danger' : ''}">
+                    <tr>
                         <td>${row.book_no}</td>
                         <td>${row.title || "-"}</td>
                         <td>${row.student_name || "-"}</td>
