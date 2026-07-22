@@ -23,25 +23,30 @@
             <div>
                 <div id="navbarContent"></div>
             </div>
-
         </div>
     </nav>
 
 
     <div class="container my-4">
         <div class="card text- p-4">
-            <h3 class="mb-3">Audit Viewing</h3>
+            <h3 class="mb-3">Audit Comparison</h3>
 
-            <!-- Date Range -->
-            <div class="row mb-3">
+            <!-- Audit Selection -->
+            <div class="row mb-3 align-items-end">
                 <div class="col-md-4">
-                    <input type="date" id="fromDate" class="form-control">
+                    <label for="auditA" class="form-label">Older Audit</label>
+                    <select id="auditA" class="form-select">
+                        <option value="" disabled selected>Loading...</option>
+                    </select>
                 </div>
                 <div class="col-md-4">
-                    <input type="date" id="toDate" class="form-control">
+                    <label for="auditB" class="form-label">Newer Audit</label>
+                    <select id="auditB" class="form-select">
+                        <option value="" disabled selected>Loading...</option>
+                    </select>
                 </div>
                 <div class="col-md-4 d-flex gap-2">
-                    <button class="btn btn-primary w-100" onclick="viewAudit()">View Audit</button>
+                    <button class="btn btn-primary w-100" onclick="compareAudits()">Compare</button>
                     <button class="btn btn-light w-100" onclick="exportPDF()">Export PDF</button>
                 </div>
             </div>
@@ -49,19 +54,54 @@
             <!-- Statistics -->
             <div id="stats" class="mb-3"></div>
 
-            <!-- Missing Books Table -->
-            <div style="max-height:400px; overflow-y:auto;">
-                <table class="table table-striped ">
-                    <thead>
-                        <tr>
-                            <th>Book No</th>
-                            <th>Title</th>
-                            <th>Author</th>
-                            <th>Category</th>
-                        </tr>
-                    </thead>
-                    <tbody id="missingTable"></tbody>
-                </table>
+            <!-- Nav tabs for Missing / Reappeared -->
+            <ul class="nav nav-tabs mb-3" id="resultTabs">
+                <li class="nav-item">
+                    <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#missingTab" type="button">
+                        Missing <span id="missingCount" class="badge bg-danger ms-1">0</span>
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#reappearedTab" type="button">
+                        Reappeared <span id="reappearedCount" class="badge bg-success ms-1">0</span>
+                    </button>
+                </li>
+            </ul>
+
+            <div class="tab-content">
+                <!-- Missing Books -->
+                <div class="tab-pane fade show active" id="missingTab">
+                    <div style="max-height:400px; overflow-y:auto;">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Book No</th>
+                                    <th>Title</th>
+                                    <th>Author</th>
+                                    <th>Category</th>
+                                </tr>
+                            </thead>
+                            <tbody id="missingTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Reappeared Books -->
+                <div class="tab-pane fade" id="reappearedTab">
+                    <div style="max-height:400px; overflow-y:auto;">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Book No</th>
+                                    <th>Title</th>
+                                    <th>Author</th>
+                                    <th>Category</th>
+                                </tr>
+                            </thead>
+                            <tbody id="reappearedTable"></tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -69,19 +109,151 @@
     <script>
         let auditStats = {};
         let missingBooks = [];
+        let reappearedBooks = [];
 
-        function viewAudit() {
-            const fromDate = document.getElementById("fromDate").value;
-            const toDate = document.getElementById("toDate").value;
+        const auditASelect = document.getElementById("auditA");
+        const auditBSelect = document.getElementById("auditB");
+
+        // Format date to YYYY-MM-DD
+        function formatDateString(dateStr) {
+            if (!dateStr) return '';
+            const date = new Date(dateStr);
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        // Load audits into both dropdowns
+        function loadAudits() {
+            const sqlSelect = `SELECT id, audit_name, start_date FROM audits ORDER BY start_date DESC, id DESC`;
+
+            fetch('/api/sql', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ query: sqlSelect })
+            })
+                .then(res => res.json())
+                .then(data => {
+                    auditASelect.innerHTML = '';
+                    auditBSelect.innerHTML = '';
+
+                    if (data.length >= 2) {
+                        // Populate both dropdowns with all audits
+                        data.forEach(audit => {
+                            const formattedDate = formatDateString(audit.start_date);
+                            const label = `${audit.audit_name} (${formattedDate})`;
+
+                            const optA = document.createElement("option");
+                            optA.value = audit.id;
+                            optA.textContent = label;
+                            auditASelect.appendChild(optA);
+
+                            const optB = document.createElement("option");
+                            optB.value = audit.id;
+                            optB.textContent = label;
+                            auditBSelect.appendChild(optB);
+                        });
+
+                        // Default: Audit A = 2nd most recent (index 1), Audit B = most recent (index 0)
+                        auditASelect.value = data[1].id;
+                        auditBSelect.value = data[0].id;
+
+                        // Auto-compare on load
+                        compareAudits();
+                    } else if (data.length === 1) {
+                        // Only one audit exists
+                        const formattedDate = formatDateString(data[0].start_date);
+                        const label = `${data[0].audit_name} (${formattedDate})`;
+
+                        const optA = document.createElement("option");
+                        optA.value = data[0].id;
+                        optA.textContent = label;
+                        auditASelect.appendChild(optA);
+
+                        auditBSelect.innerHTML = '<option value="" disabled selected>Not enough audits</option>';
+                        auditASelect.disabled = true;
+                    } else {
+                        auditASelect.innerHTML = '<option value="" disabled selected>No audits found</option>';
+                        auditBSelect.innerHTML = '<option value="" disabled selected>No audits found</option>';
+                        auditASelect.disabled = true;
+                        auditBSelect.disabled = true;
+                    }
+                })
+                .catch(err => {
+                    auditASelect.innerHTML = '<option value="" disabled selected>Error loading</option>';
+                    auditBSelect.innerHTML = '<option value="" disabled selected>Error loading</option>';
+                    console.error('Error loading audits:', err);
+                });
+        }
+
+        // Prevent selecting the same audit in both dropdowns
+        auditASelect.addEventListener("change", function () {
+            const selectedB = auditBSelect.value;
+            const options = auditBSelect.options;
+            for (let i = 0; i < options.length; i++) {
+                options[i].disabled = (options[i].value === this.value);
+            }
+            // If the disabled option was selected, switch to the first available
+            if (selectedB === this.value || auditBSelect.options[auditBSelect.selectedIndex].disabled) {
+                for (let i = 0; i < options.length; i++) {
+                    if (!options[i].disabled && options[i].value) {
+                        auditBSelect.value = options[i].value;
+                        break;
+                    }
+                }
+            }
+        });
+
+        auditBSelect.addEventListener("change", function () {
+            const options = auditASelect.options;
+            for (let i = 0; i < options.length; i++) {
+                options[i].disabled = (options[i].value === this.value);
+            }
+            if (auditASelect.options[auditASelect.selectedIndex].disabled) {
+                for (let i = 0; i < options.length; i++) {
+                    if (!options[i].disabled && options[i].value) {
+                        auditASelect.value = options[i].value;
+                        break;
+                    }
+                }
+            }
+        });
+
+        function compareAudits() {
+            const auditAId = auditASelect.value;
+            const auditBId = auditBSelect.value;
+
+            if (!auditAId || !auditBId) {
+                showToast('danger', 'Please select two different audits');
+                return;
+            }
+
+            if (auditAId === auditBId) {
+                showToast('danger', 'Please select two different audits');
+                return;
+            }
+
+            const auditALabel = auditASelect.options[auditASelect.selectedIndex].textContent;
+            const auditBLabel = auditBSelect.options[auditBSelect.selectedIndex].textContent;
 
             // Stats query
             const statsSql = `
-        SELECT 
-          (SELECT COUNT(*) FROM Books) AS total_books,
-          (SELECT COUNT(*) FROM Books WHERE book_no NOT IN (
-            SELECT book_no FROM Audit WHERE check_date BETWEEN '${fromDate}' AND '${toDate}'
-          )) AS missing_books
-      `;
+                SELECT 
+                    (SELECT COUNT(*) FROM Books) AS total_books,
+                    (SELECT COUNT(DISTINCT book_no) FROM audit_data WHERE audit_id = ${auditAId}) AS count_a,
+                    (SELECT COUNT(DISTINCT book_no) FROM audit_data WHERE audit_id = ${auditBId}) AS count_b,
+                    (SELECT COUNT(*) FROM Books WHERE book_no IN (
+                        SELECT book_no FROM audit_data WHERE audit_id = ${auditAId}
+                    ) AND book_no NOT IN (
+                        SELECT book_no FROM audit_data WHERE audit_id = ${auditBId}
+                    )) AS missing_count,
+                    (SELECT COUNT(*) FROM Books WHERE book_no NOT IN (
+                        SELECT book_no FROM audit_data WHERE audit_id = ${auditAId}
+                    ) AND book_no IN (
+                        SELECT book_no FROM audit_data WHERE audit_id = ${auditBId}
+                    )) AS reappeared_count
+            `;
 
             fetch('/api/sql', {
                 method: 'POST',
@@ -90,29 +262,56 @@
             })
                 .then(res => res.json())
                 .then(stats => {
-                    const total = stats[0].total_books;
-                    const missing = stats[0].missing_books;
-                    const percentage = ((missing / total) * 100).toFixed(2);
-
-                    auditStats = { total, missing, percentage, fromDate, toDate };
+                    const s = stats[0];
+                    auditStats = {
+                        total: s.total_books,
+                        countA: s.count_a,
+                        countB: s.count_b,
+                        missing: s.missing_count,
+                        reappeared: s.reappeared_count,
+                        auditALabel,
+                        auditBLabel
+                    };
 
                     document.getElementById("stats").innerHTML = `
-          <div class="card   p-2">
-            <p>Total Books: ${total}</p>
-            <p>Missing Books: ${missing}</p>
-            <p>Percentage Missing: ${percentage}%</p>
-          </div>
-        `;
+                        <div class="card p-3">
+                            <div class="row text-center">
+                                <div class="col">
+                                    <h6>Total Books</h6>
+                                    <p class="mb-0 fw-bold fs-5">${s.total_books}</p>
+                                </div>
+                                <div class="col">
+                                    <h6>${auditALabel}</h6>
+                                    <p class="mb-0 fw-bold fs-5">${s.count_a}</p>
+                                </div>
+                                <div class="col">
+                                    <h6>${auditBLabel}</h6>
+                                    <p class="mb-0 fw-bold fs-5">${s.count_b}</p>
+                                </div>
+                                <div class="col">
+                                    <h6 class="text-danger">Missing</h6>
+                                    <p class="mb-0 fw-bold fs-5 text-danger">${s.missing_count}</p>
+                                </div>
+                                <div class="col">
+                                    <h6 class="text-success">Reappeared</h6>
+                                    <p class="mb-0 fw-bold fs-5 text-success">${s.reappeared_count}</p>
+                                </div>
+                            </div>
+                        </div>
+                    `;
                 });
 
-            // Missing books query with details
+            // Missing books: in A but not in B
             const missingSql = `
-        SELECT b.book_no, b.title, b.author, b.category AS category
-        FROM Books b
-        WHERE b.book_no NOT IN (
-          SELECT book_no FROM Audit WHERE check_date BETWEEN '${fromDate}' AND '${toDate}'
-        )
-      `;
+                SELECT b.book_no, b.title, b.author, b.category
+                FROM Books b
+                WHERE b.book_no IN (
+                    SELECT book_no FROM audit_data WHERE audit_id = ${auditAId}
+                ) AND b.book_no NOT IN (
+                    SELECT book_no FROM audit_data WHERE audit_id = ${auditBId}
+                )
+                ORDER BY b.book_no
+            `;
 
             fetch('/api/sql', {
                 method: 'POST',
@@ -122,45 +321,138 @@
                 .then(res => res.json())
                 .then(data => {
                     missingBooks = data;
+                    document.getElementById("missingCount").textContent = data.length;
                     const tbody = document.getElementById("missingTable");
                     tbody.innerHTML = "";
-                    data.forEach(row => {
-                        tbody.innerHTML += `
-            <tr>
-              <td>${row.book_no}</td>
-              <td>${row.title || ''}</td>
-              <td>${row.author || ''}</td>
-              <td>${row.category || ''}</td>
-            </tr>
-          `;
-                    });
+                    if (data.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">No missing books</td></tr>';
+                    } else {
+                        data.forEach(row => {
+                            tbody.innerHTML += `
+                                <tr>
+                                    <td>${row.book_no}</td>
+                                    <td>${row.title || ''}</td>
+                                    <td>${row.author || ''}</td>
+                                    <td>${row.category || ''}</td>
+                                </tr>
+                            `;
+                        });
+                    }
+                });
+
+            // Reappeared books: not in A but in B
+            const reappearedSql = `
+                SELECT b.book_no, b.title, b.author, b.category
+                FROM Books b
+                WHERE b.book_no NOT IN (
+                    SELECT book_no FROM audit_data WHERE audit_id = ${auditAId}
+                ) AND b.book_no IN (
+                    SELECT book_no FROM audit_data WHERE audit_id = ${auditBId}
+                )
+                ORDER BY b.book_no
+            `;
+
+            fetch('/api/sql', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ query: reappearedSql })
+            })
+                .then(res => res.json())
+                .then(data => {
+                    reappearedBooks = data;
+                    document.getElementById("reappearedCount").textContent = data.length;
+                    const tbody = document.getElementById("reappearedTable");
+                    tbody.innerHTML = "";
+                    if (data.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">No reappeared books</td></tr>';
+                    } else {
+                        data.forEach(row => {
+                            tbody.innerHTML += `
+                                <tr>
+                                    <td>${row.book_no}</td>
+                                    <td>${row.title || ''}</td>
+                                    <td>${row.author || ''}</td>
+                                    <td>${row.category || ''}</td>
+                                </tr>
+                            `;
+                        });
+                    }
                 });
         }
 
         function exportPDF() {
+            if (missingBooks.length === 0 && reappearedBooks.length === 0 && !auditStats.total) {
+                showToast('danger', 'No data to export. Run a comparison first.');
+                return;
+            }
+
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
 
             doc.setFontSize(14);
-            doc.text("Audit Report", 14, 20);
+            doc.text("Audit Comparison Report", 14, 20);
             doc.setFontSize(11);
-            doc.text(`Date Range: ${auditStats.fromDate} to ${auditStats.toDate}`, 14, 30);
-            doc.text(`Total Books: ${auditStats.total}`, 14, 40);
-            doc.text(`Missing Books: ${auditStats.missing}`, 14, 50);
-            doc.text(`Percentage Missing: ${auditStats.percentage}%`, 14, 60);
+            doc.text(`Older Audit: ${auditStats.auditALabel}`, 14, 30);
+            doc.text(`Newer Audit: ${auditStats.auditBLabel}`, 14, 38);
+            doc.text(`Total Books: ${auditStats.total}`, 14, 48);
+            doc.text(`Missing Books: ${auditStats.missing}`, 14, 56);
+            doc.text(`Reappeared Books: ${auditStats.reappeared}`, 14, 64);
 
-            // Table of missing books
-            const rows = missingBooks.map(b => [b.book_no, b.title || '', b.author || '', b.category || '']);
-            doc.autoTable({
-                head: [["Book No", "Title", "Author", "Category"]],
-                body: rows,
-                startY: 70
-            });
+            let startY = 74;
 
-            doc.save(`Audit_Report_${auditStats.fromDate}_to_${auditStats.toDate}.pdf`);
-            showToast('success',`PDF downloaded`);
+            // Missing books table
+            if (missingBooks.length > 0) {
+                doc.setFontSize(12);
+                doc.text("Missing Books", 14, startY);
+                startY += 4;
+                const missingRows = missingBooks.map(b => [b.book_no, b.title || '', b.author || '', b.category || '']);
+                doc.autoTable({
+                    head: [["Book No", "Title", "Author", "Category"]],
+                    body: missingRows,
+                    startY: startY,
+                    theme: 'grid'
+                });
+                startY = doc.lastAutoTable.finalY + 10;
+            }
 
+            // Reappeared books table
+            if (reappearedBooks.length > 0) {
+                if (startY > 260) {
+                    doc.addPage();
+                    startY = 20;
+                }
+                doc.setFontSize(12);
+                doc.text("Reappeared Books", 14, startY);
+                startY += 4;
+                const reappearedRows = reappearedBooks.map(b => [b.book_no, b.title || '', b.author || '', b.category || '']);
+                doc.autoTable({
+                    head: [["Book No", "Title", "Author", "Category"]],
+                    body: reappearedRows,
+                    startY: startY,
+                    theme: 'grid'
+                });
+            }
+
+            doc.save(`Audit_Comparison_Report.pdf`);
+            showToast('success', 'PDF downloaded');
         }
+
+        // Load audits on page load
+        loadAudits();
+
+        // After initial load, apply the mutual exclusion for already-selected values
+        auditASelect.addEventListener("change", function () {
+            const options = auditBSelect.options;
+            for (let i = 0; i < options.length; i++) {
+                options[i].disabled = (options[i].value === this.value);
+            }
+        });
+        auditBSelect.addEventListener("change", function () {
+            const options = auditASelect.options;
+            for (let i = 0; i < options.length; i++) {
+                options[i].disabled = (options[i].value === this.value);
+            }
+        });
     </script>
 
 </body>

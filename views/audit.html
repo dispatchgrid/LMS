@@ -18,17 +18,56 @@
         <div class="container-fluid">
             <span class="navbar-brand mb-0 h1" id="navbarTxt">Error</span>
             <div>
-
                 <div id="navbarContent"></div>
             </div>
-
         </div>
     </nav>
 
+    <!-- Confirm New Audit Modal -->
+    <div class="modal fade" id="newAuditModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Create New Audit</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>A new audit will be created with the following details:</p>
+                    <ul>
+                        <li><strong>Name:</strong> <span id="newAuditName"></span></li>
+                        <li><strong>Start Date:</strong> <span id="newAuditDate"></span></li>
+                    </ul>
+                    <p class="text-warning">Are you sure you want to proceed?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="confirmNewAudit">Create Audit</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <div class="container my-4">
         <div class="card p-4">
             <h3 class="mb-3">Audit Scanning</h3>
+
+            <!-- Audit Selection -->
+            <div class="row mb-3 align-items-end">
+                <div class="col">
+                    <label for="auditSelect" class="form-label">Select Audit</label>
+                    <select id="auditSelect" class="form-select">
+                        <option value="" disabled selected>Loading audits...</option>
+                    </select>
+                </div>
+                <div class="col-auto">
+                    <button class="btn btn-outline-primary" id="newAuditBtn">
+                        <i class="bi bi-plus-circle"></i> New Audit
+                    </button>
+                </div>
+            </div>
+
+            <hr>
+
             <form id="scanForm">
                 <label for="book_no" class="form-label">Scan Book Barcode</label>
                 <input type="number" id="book_no" class="form-control" autofocus>
@@ -44,7 +83,6 @@
                                 <th>Title</th>
                                 <th>Author</th>
                                 <th>Category</th>
-                                <th>Logged Time</th>
                             </tr>
                         </thead>
                         <tbody id="scanTable">
@@ -60,61 +98,196 @@
         const bookInput = document.getElementById("book_no");
         const messageDiv = document.getElementById("message");
         const scanTable = document.getElementById("scanTable");
+        const auditSelect = document.getElementById("auditSelect");
+        const newAuditBtn = document.getElementById("newAuditBtn");
+        const newAuditModal = new bootstrap.Modal(document.getElementById("newAuditModal"));
+        const confirmNewAuditBtn = document.getElementById("confirmNewAudit");
 
-        // Handle barcode scan (Enter key)
-        document.getElementById("scanForm").addEventListener("submit", function (e) {
-            e.preventDefault();
-            const book_no = bookInput.value;
+        let currentAuditId = null;
 
-            const sqlInsert = `INSERT INTO Audit (book_no, check_date) VALUES (${book_no}, NOW())`;
+        // Generate audit name format: AUDIT-YEAR-MONTH
+        function generateAuditName() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            return `AUDIT-${year}-${month}`;
+        }
 
-            const sqlSelect = `SELECT b.book_no, b.title, b.author, b.category
-                   FROM Books b
-                   WHERE b.book_no=${book_no}`;
+        // Get today's date in YYYY-MM-DD format
+        function getTodayDate() {
+            const now = new Date();
+            return now.toISOString().split('T')[0];
+        }
 
+        // Format date from DB to YYYY-MM-DD (handles cases where DB returns different formats)
+        function formatDateString(dateStr) {
+            if (!dateStr) return '';
+            const date = new Date(dateStr);
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
 
-            // Insert audit record
+        // Load audits from database
+        function loadAudits() {
+            const sqlSelect = `SELECT id, audit_name, start_date FROM audits ORDER BY start_date DESC, id DESC`;
+
+            fetch('/api/sql', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ query: sqlSelect })
+            })
+                .then(res => res.json())
+                .then(data => {
+                    auditSelect.innerHTML = '';
+
+                    if (data.length > 0) {
+                        data.forEach((audit, index) => {
+                            const option = document.createElement("option");
+                            option.value = audit.id;
+                            const formattedDate = formatDateString(audit.start_date);
+                            option.textContent = `${audit.audit_name} (${formattedDate})`;
+                            auditSelect.appendChild(option);
+                        });
+                        // Auto-select the first (most recent) audit
+                        auditSelect.selectedIndex = 0;
+                        currentAuditId = data[0].id;
+                        bookInput.focus();
+                    } else {
+                        const option = document.createElement("option");
+                        option.value = "";
+                        option.textContent = "No audits found. Create a new one.";
+                        option.disabled = true;
+                        option.selected = true;
+                        auditSelect.appendChild(option);
+                        currentAuditId = null;
+                    }
+                })
+                .catch(err => {
+                    auditSelect.innerHTML = '<option value="" disabled selected>Error loading audits</option>';
+                    console.error('Error loading audits:', err);
+                });
+        }
+
+        // Handle audit selection change
+        auditSelect.addEventListener("change", function () {
+            currentAuditId = this.value;
+            bookInput.focus();
+        });
+
+        // Show new audit modal
+        newAuditBtn.addEventListener("click", function () {
+            document.getElementById("newAuditName").textContent = generateAuditName();
+            document.getElementById("newAuditDate").textContent = getTodayDate();
+            newAuditModal.show();
+        });
+
+        // Confirm and create new audit
+        confirmNewAuditBtn.addEventListener("click", function () {
+            const auditName = generateAuditName();
+            const startDate = getTodayDate();
+
+            const sqlInsert = `INSERT INTO audits (audit_name, start_date) VALUES ('${auditName}', '${startDate}')`;
+
             fetch('/api/sql', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ query: sqlInsert })
             })
-                .then(() => {
-                    // Fetch book info
-                    return fetch('/api/sql', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ query: sqlSelect })
-                    });
+                .then(res => res.json())
+                .then(data => {
+                    newAuditModal.hide();
+                    showToast('success', `Audit "${auditName}" created successfully`);
+                    playSound("success");
+                    loadAudits();
                 })
+                .catch(err => {
+                    newAuditModal.hide();
+                    showToast('danger', 'Failed to create audit');
+                    playSound("error");
+                    console.error('Error creating audit:', err);
+                });
+        });
+
+        // Handle barcode scan (Enter key)
+        document.getElementById("scanForm").addEventListener("submit", function (e) {
+            e.preventDefault();
+
+            if (!currentAuditId) {
+                showToast('danger', 'Please select or create an audit first');
+                playSound("error");
+                return;
+            }
+
+            const book_no = bookInput.value;
+
+            // Check if book was already scanned under this audit
+            const sqlCheck = `SELECT id FROM audit_data WHERE audit_id = ${currentAuditId} AND book_no = ${book_no}`;
+
+            fetch('/api/sql', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ query: sqlCheck })
+            })
                 .then(res => res.json())
                 .then(data => {
                     if (data.length > 0) {
-                        const book = data[0];
-                        const now = new Date();
-                        const loggedTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-                        showToast('success',`Book ${book_no} logged at ${loggedTime}`);
-                        playSound("success");
-                        const row = document.createElement("tr");
-                        row.innerHTML = `
-            <td>${book.book_no}</td>
-            <td>${book.title || ''}</td>
-            <td>${book.author || ''}</td>
-            <td>${book.category || ''}</td>
-            <td>${loggedTime}</td>
-          `;
-                        scanTable.prepend(row);
-                    } else {
-                        showToast('danger',`Book not found`);
+                        // Already scanned under this audit
+                        showToast('warning', `Book ${book_no} was already scanned under this audit`);
                         playSound("error");
-
+                        bookInput.value = "";
+                        bookInput.focus();
+                        return;
                     }
 
-                    bookInput.value = "";
-                    bookInput.focus();
+                    // Not a duplicate, proceed with insert
+                    const sqlInsert = `INSERT INTO audit_data (book_no, check_date, audit_id) VALUES (${book_no}, NOW(), ${currentAuditId})`;
+
+                    const sqlSelect = `SELECT b.book_no, b.title, b.author, b.category
+                               FROM Books b
+                               WHERE b.book_no=${book_no}`;
+
+                    return fetch('/api/sql', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ query: sqlInsert })
+                    })
+                        .then(() => {
+                            return fetch('/api/sql', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ query: sqlSelect })
+                            });
+                        })
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.length > 0) {
+                                const book = data[0];
+
+                                showToast('success', `Book ${book_no} logged successfully`);
+                                playSound("success");
+                                const row = document.createElement("tr");
+                                row.innerHTML = `
+                                    <td>${book.book_no}</td>
+                                    <td>${book.title || ''}</td>
+                                    <td>${book.author || ''}</td>
+                                    <td>${book.category || ''}</td>
+                                `;
+                                scanTable.prepend(row);
+                            } else {
+                                showToast('danger', `Book not found`);
+                                playSound("error");
+                            }
+
+                            bookInput.value = "";
+                            bookInput.focus();
+                        });
                 });
         });
+
+        // Load audits when page loads
+        loadAudits();
     </script>
 
 </body>

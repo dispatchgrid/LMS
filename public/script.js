@@ -102,6 +102,7 @@ if (navbar) {
         btn.addEventListener("click", () => {
             if (!activeInput) {
                 showToast('danger', 'Click a textfield first')
+                playSound("error");
                 return;
             }
             if (!listening) {
